@@ -54,7 +54,8 @@ body{background:var(--chrome);color:var(--chrome-text);font-family:Verdana,"Deja
 .toolbar{display:flex;gap:6px;align-items:center;padding:6px 10px;border-bottom:1px solid var(--chrome-line);overflow-x:auto;white-space:nowrap}
 .sep{width:1px;align-self:stretch;background:var(--chrome-line);margin:0 4px;flex:none}
 button{font:inherit;font-size:12px;color:var(--chrome-text);background:linear-gradient(var(--btn-top),var(--btn-bot));border:1px solid var(--btn-line);border-radius:3px;padding:5px 10px;cursor:pointer;flex:none}
-button:hover{filter:brightness(1.04)}
+button:hover,.btn:hover{filter:brightness(1.04)}
+.btn{font-size:12px;color:var(--chrome-text);text-decoration:none;background:linear-gradient(var(--btn-top),var(--btn-bot));border:1px solid var(--btn-line);border-radius:3px;padding:5px 10px;flex:none}
 button[aria-pressed="true"]{background:var(--btn-bot);box-shadow:inset 0 1px 3px rgba(0,0,0,.25)}
 button:focus-visible,a:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 main{position:relative;overflow:hidden;background:var(--canvas);border:1px solid var(--chrome-line);margin:0 6px}
@@ -154,6 +155,7 @@ dialog#figdlg::backdrop{background:rgba(0,0,0,.45)}
     <button id="bFit">Ajustar à tela</button>
     <span class="sep"></span>
     <button id="bPres" aria-pressed="false">Apresentar</button>
+    <a class="btn" href="https://www.youtube.com/watch?v=cxP0Mdoz_Bo" target="_blank" rel="noopener">▶ Vídeo explicativo</a>
     <button id="bFigs">Figuras</button>
     <button id="bRefs">Fontes e equipe</button>
   </nav>
@@ -213,6 +215,7 @@ dialog#figdlg::backdrop{background:rgba(0,0,0,.45)}
 <script>
 (() => {
 const REFS = {
+  video:{t:'Vídeo: como funciona a tecnologia Bluetooth',s:'YouTube',u:'https://www.youtube.com/watch?v=cxP0Mdoz_Bo'},
   overview:{t:'Bluetooth technology overview',s:'Bluetooth SIG',u:'https://www.bluetooth.com/learn-about-bluetooth/tech-overview/'},
   origin:{t:'Origin of the Bluetooth name',s:'Bluetooth SIG',u:'https://www.bluetooth.com/about-us/bluetooth-origin/'},
   range:{t:'Bluetooth range',s:'Bluetooth SIG',u:'https://www.bluetooth.com/learn-about-bluetooth/key-attributes/range/'},
@@ -236,6 +239,7 @@ const REFS = {
   ieee:{t:'IEEE 802.15 Working Group',s:'IEEE',u:'https://www.ieee802.org/15/'}
 };
 const ABNT = [
+  ['BLUETOOTH: vídeo explicativo sobre a tecnologia. [<i>S. l.</i>]: YouTube, [20--]. 1 vídeo.','video'],
   ['BARNES, D. Bluetooth connectivity will soon get a major boost in speed: introducing Bluetooth High Data Throughput (HDT). <b>Bluetooth Blog</b>, 28 jul. 2026.','hdt'],
   ['BLUETOOTH SIG. <b>Bluetooth technology overview</b>.','overview'],
   ['BLUETOOTH SIG. <b>Origin of the Bluetooth name</b>.','origin'],
@@ -271,7 +275,7 @@ const TEAM = ['Kauan Alves Oliveira','Pedro Marangoni dos Santos','Guilherme Vaz
 const N = (label, o = {}) => Object.assign({ label, children: [] }, o);
 const V = (label, info) => N(label, { info });
 
-const DATA = N('Bluetooth', { id:'bt', info:'Padrão aberto de comunicação sem fio de curto alcance, baixo consumo e baixo custo. O eixo deste mapa é a camada física: como o Bluetooth usa o espectro, modula os bits e divide o canal.', refs:['overview','teleco','seget'], children:[
+const DATA = N('Bluetooth', { id:'bt', info:'Padrão aberto de comunicação sem fio de curto alcance, baixo consumo e baixo custo. O eixo deste mapa é a camada física: como o Bluetooth usa o espectro, modula os bits e divide o canal.', refs:['video','overview','teleco','seget'], children:[
   N('Padrão sem fio WPAN', { id:'wpan', p:'é um', info:'WPAN = Wireless Personal Area Network: rede pessoal sem fio, que liga os aparelhos em volta de uma pessoa (celular, fone, relógio). “Aberto” quer dizer que qualquer empresa pode usar, seguindo a especificação.', refs:['overview','teleco'], children:[
     N('Curto alcance', { p:'de', info:'O alcance depende da potência do rádio. Menos potência significa menos alcance, mas bateria que dura mais.', refs:['range'], stack:true, childPhrase:'limitado pelas classes', children:[
       V('Classe 1: ≈ 100 mW'), V('Classe 2: ≈ 2,5 mW'), V('Classe 3: ≈ 1 mW') ]}),
@@ -309,7 +313,7 @@ const DATA = N('Bluetooth', { id:'bt', info:'Padrão aberto de comunicação sem
     ]}),
     N('HDT (anúncio jul/2026)', { fig:['hdt'], p:'e agora anuncia o', info:'Até 7,5 Mbps no LE. Veja o ramo “Futuro”.', refs:['hdt'] })
   ]}),
-  N('Camada física (PHY)', { id:'phy', fig:['ism'], key:true, p:'opera na', info:'PHY é a parte que cuida do sinal de rádio em si: frequência, potência e como os bits viram onda. É o eixo deste trabalho: cada versão nova muda principalmente essa camada.', refs:['specs','teleco'], children:[
+  N('Camada física (PHY)', { id:'phy', fig:['ism'], key:true, p:'opera na', info:'PHY é a parte que cuida do sinal de rádio em si: frequência, potência e como os bits viram onda. É o eixo deste trabalho: cada versão nova muda principalmente essa camada.', refs:['video','specs','teleco'], children:[
     N('Faixa ISM de 2,4 GHz', { id:'ism', fig:['ism'], p:'usa a', info:'ISM = Industrial, Scientific and Medical. É uma faixa de uso não licenciado: qualquer um pode transmitir, por isso ela é lotada.', refs:['overview','teleco'], children:[
       N('Wi-Fi e micro-ondas', { fig:['ism'], p:'divide espaço com', info:'Um único canal Wi-Fi de 22 MHz cobre mais de 20 canais do Bluetooth Classic. Por isso o Bluetooth salta de canal.' }),
       N('79 canais de 1 MHz', { p:'no Classic tem' }),
