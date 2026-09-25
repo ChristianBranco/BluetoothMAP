@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bluetooth – Mapa conceitual</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --chrome:#ECE9D8; --chrome-2:#F6F4EA; --chrome-line:#ACA899; --chrome-text:#1E1E1E; --chrome-soft:#555248;
+  --btn-top:#FDFDFB; --btn-bot:#E3DFD0; --btn-line:#8F8B7C;
+  --canvas:#FFFFFF; --text:#141414;
+  --concept:#FFFBC9; --concept-line:#3A3A3A; --shadow:rgba(0,0,0,.28);
+  --hub:#FFF3A6; --root:#3DC3C9; --root-text:#08262B; --key:#D9480F;
+  --phrase:#FAD4F6; --phrase-line:#7A4B76; --phrase-text:#2A1328;
+  --line:#3E3E3E; --cross:#1F5FBF;
+  --note:#FFFFC4; --note-line:#23349A; --link:#1440A8; --focus:#1F5FBF;
+  --badge:#FFFFFF;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --chrome:#2B2D31; --chrome-2:#34373C; --chrome-line:#4B4F56; --chrome-text:#ECECEC; --chrome-soft:#B7BAC0;
+    --btn-top:#43474E; --btn-bot:#373A40; --btn-line:#5E636B;
+    --canvas:#1C1F23; --text:#F2EFDD;
+    --concept:#3B3920; --concept-line:#CFC9A6; --shadow:rgba(0,0,0,.6);
+    --hub:#4A4520; --root:#27939A; --root-text:#F1FEFF; --key:#FF8A4C;
+    --phrase:#4C2A49; --phrase-line:#C99BC4; --phrase-text:#F8E6F5;
+    --line:#A7ADB5; --cross:#7FB0FF;
+    --note:#38361E; --note-line:#8C9BFF; --link:#9CC0FF; --focus:#7FB0FF;
+    --badge:#2B2D31;
+  }
+}
+:root[data-theme="dark"]{
+  --chrome:#2B2D31; --chrome-2:#34373C; --chrome-line:#4B4F56; --chrome-text:#ECECEC; --chrome-soft:#B7BAC0;
+  --btn-top:#43474E; --btn-bot:#373A40; --btn-line:#5E636B;
+  --canvas:#1C1F23; --text:#F2EFDD;
+  --concept:#3B3920; --concept-line:#CFC9A6; --shadow:rgba(0,0,0,.6);
+  --hub:#4A4520; --root:#27939A; --root-text:#F1FEFF; --key:#FF8A4C;
+  --phrase:#4C2A49; --phrase-line:#C99BC4; --phrase-text:#F8E6F5;
+  --line:#A7ADB5; --cross:#7FB0FF;
+  --note:#38361E; --note-line:#8C9BFF; --link:#9CC0FF; --focus:#7FB0FF;
+  --badge:#2B2D31;
+}
+html,body{height:100%;margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--chrome);color:var(--chrome-text);font-family:Verdana,"DejaVu Sans",Tahoma,Geneva,sans-serif;font-size:13px}
+.app{height:100%;display:grid;grid-template-rows:auto auto 1fr auto}
+.titlebar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--chrome-2);border-bottom:1px solid var(--chrome-line)}
+.titlebar svg{flex:none}
+.titlebar h1{font-size:14px;margin:0;font-weight:bold}
+.titlebar p{margin:0;color:var(--chrome-soft);font-size:12px}
+.toolbar{display:flex;gap:6px;align-items:center;padding:6px 10px;border-bottom:1px solid var(--chrome-line);overflow-x:auto;white-space:nowrap}
+.sep{width:1px;align-self:stretch;background:var(--chrome-line);margin:0 4px;flex:none}
+button{font:inherit;font-size:12px;color:var(--chrome-text);background:linear-gradient(var(--btn-top),var(--btn-bot));border:1px solid var(--btn-line);border-radius:3px;padding:5px 10px;cursor:pointer;flex:none}
+button:hover{filter:brightness(1.04)}
+button[aria-pressed="true"]{background:var(--btn-bot);box-shadow:inset 0 1px 3px rgba(0,0,0,.25)}
+button:focus-visible,a:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+main{position:relative;overflow:hidden;background:var(--canvas);border:1px solid var(--chrome-line);margin:0 6px}
+#map{width:100%;height:100%;display:block;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+#map.dragging{cursor:grabbing}
+#vp{transform-origin:0 0;transition:transform .45s ease}
+#vp.instant{transition:none}
+.node{cursor:pointer}
+.node .box{fill:var(--concept);stroke:var(--concept-line);stroke-width:1.2}
+.node .sh{fill:var(--shadow)}
+.node.hub .box{fill:var(--hub);stroke-width:1.6}
+.node.root .box{fill:var(--root);stroke-width:2}
+.node.key .box{stroke:var(--key);stroke-width:3}
+.node text{fill:var(--text)}
+.node.root text{fill:var(--root-text)}
+.node:focus{outline:none}
+.node:focus-visible .box,.node.sel .box{stroke:var(--focus);stroke-width:3}
+.badge circle{fill:var(--badge);stroke:var(--concept-line);stroke-width:1.2}
+.badge text{fill:var(--text);font-weight:bold}
+.res rect{fill:var(--canvas);stroke:var(--concept-line)}
+.res path{fill:none;stroke:var(--link);stroke-width:1.3}
+.edge{fill:none;stroke:var(--line);stroke-width:1.4}
+.cross{fill:none;stroke:var(--cross);stroke-width:1.6;stroke-dasharray:6 5}
+.ph rect{fill:var(--phrase);stroke:var(--phrase-line);stroke-width:1}
+.ph text{fill:var(--phrase-text)}
+.ph.x rect{fill:var(--canvas);stroke:var(--cross)}
+.ph.x text{fill:var(--cross)}
+.enter{animation:fade .4s ease both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion: reduce){#vp{transition:none}.enter{animation:none}}
+/* note panel, styled like a Cmap annotation */
+.note{position:absolute;top:12px;right:12px;width:360px;max-width:calc(100% - 24px);max-height:calc(100% - 24px);overflow:auto;background:var(--note);color:var(--text);border:2px solid var(--note-line);box-shadow:3px 3px 0 var(--shadow);padding:14px 16px 16px;display:none}
+.note.open{display:block}
+.note .close{position:absolute;top:6px;right:6px;padding:2px 8px}
+.note .crumb{font-size:11px;color:var(--chrome-soft);margin:0 28px 6px 0}
+.note h2{font-size:16px;margin:0 28px 8px 0}
+.note .prop{font-size:12px;margin:0 0 10px;padding:6px 8px;border-left:3px solid var(--note-line);background:rgba(127,127,127,.08)}
+.note p{line-height:1.55;margin:0 0 10px}
+.note h3{font-size:12px;margin:14px 0 6px}
+.note ul{margin:0;padding-left:18px}
+.note li{margin:0 0 7px;line-height:1.45}
+.note a{color:var(--link)}
+.note .src{display:block;font-size:11px;color:var(--chrome-soft)}
+.note .kids{display:flex;flex-wrap:wrap;gap:6px}
+.note .kids button{font-size:11px;padding:3px 8px}
+.pres{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:none;align-items:center;gap:8px;background:var(--chrome-2);border:1px solid var(--chrome-line);box-shadow:2px 2px 0 var(--shadow);padding:6px 8px;max-width:calc(100% - 24px)}
+.pres.open{display:flex}
+.pres span{font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.help{position:absolute;left:12px;bottom:12px;max-width:300px;background:var(--chrome-2);border:1px solid var(--chrome-line);font-size:11px;padding:6px 10px}
+.help summary{cursor:pointer;font-weight:bold}
+.help ul{margin:6px 0 2px;padding-left:16px}
+.help li{margin-bottom:4px;line-height:1.4}
+.note{width:400px}
+.note figure{margin:4px 0 12px;cursor:zoom-in}
+.figimg{background:#FFFFFF;border:1px solid var(--note-line);padding:6px}
+.frow{display:flex;gap:6px;align-items:flex-start}
+.fcell{flex:1;min-width:0;text-align:center;font-size:11px;color:#1E1E1E}
+.fcell span{display:block;margin-top:3px}
+.note figcaption{font-size:11px;line-height:1.45;margin-top:5px;color:var(--text)}
+.pic rect{fill:var(--canvas);stroke:var(--concept-line)}
+.pic path{fill:#3DA35D;stroke:none}
+.pic circle{fill:#E0A100}
+dialog#figdlg{width:min(1000px,94vw);max-height:90vh;padding:0;border:2px solid var(--note-line);background:var(--chrome-2);color:var(--chrome-text)}
+dialog#figdlg::backdrop{background:rgba(0,0,0,.45)}
+.dlghead{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;background:var(--chrome);border-bottom:1px solid var(--chrome-line)}
+.dlghead h2{font-size:15px;margin:0}
+.dlgbody{padding:14px;overflow:auto}
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.gal figure{margin:0;display:flex;flex-direction:column;gap:6px}
+.gal figcaption{font-size:11px;line-height:1.45}
+.gal .figimg{cursor:zoom-in}
+.big figcaption{font-size:13px;line-height:1.5;margin-top:10px}
+.status{display:flex;justify-content:space-between;gap:12px;padding:5px 12px;font-size:11px;color:var(--chrome-soft)}
+@media (max-width:700px){
+  .note{top:auto;bottom:0;right:0;left:0;width:auto;max-width:none;max-height:55%;border-width:2px 0 0}
+  .help{display:none}
+  .pres{bottom:12px}
+  .titlebar p{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="titlebar">
+    <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="3" width="9" height="6" rx="2" fill="#3DC3C9" stroke="#333"/><rect x="12" y="13" width="9" height="6" rx="2" fill="#FFFBC9" stroke="#333"/><rect x="1" y="13" width="9" height="6" rx="2" fill="#FFFBC9" stroke="#333"/><path d="M6 9v4M8 9l7 4" stroke="#333" fill="none"/></svg>
+    <div>
+      <h1>Bluetooth – modulação e multiplexação</h1>
+      <p>Mapa conceitual interativo · Tecnologia de Comunicação · Engenharia Elétrica, Universidade de Sorocaba</p>
+    </div>
+  </header>
+  <nav class="toolbar" aria-label="Ferramentas do mapa">
+    <button id="bExpand">Expandir tudo</button>
+    <button id="bCollapse">Recolher</button>
+    <span class="sep"></span>
+    <button id="bOut" aria-label="Diminuir zoom">−</button>
+    <button id="bIn" aria-label="Aumentar zoom">+</button>
+    <button id="bFit">Ajustar à tela</button>
+    <span class="sep"></span>
+    <button id="bPres" aria-pressed="false">Apresentar</button>
+    <button id="bFigs">Figuras</button>
+    <button id="bRefs">Fontes e equipe</button>
+  </nav>
+  <main>
+    <svg id="map" role="application" aria-label="Mapa conceitual do Bluetooth. Use Tab para navegar pelos conceitos e Enter para abrir.">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--line)"/></marker>
+        <marker id="arrx" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--cross)"/></marker>
+      </defs>
+      <g id="vp"></g>
+    </svg>
+    <aside class="note" id="note" aria-live="polite"></aside>
+    <div class="pres" id="pres">
+      <button id="pPrev" aria-label="Passo anterior">◀</button>
+      <span id="pLabel"></span>
+      <button id="pNext" aria-label="Próximo passo">▶</button>
+      <button id="pExit">Sair</button>
+    </div>
+    <details class="help">
+      <summary>Como usar</summary>
+      <ul>
+        <li>Clique em um conceito para abrir ou fechar seus ramos (+/−) e ver a nota.</li>
+        <li>O ícone de página indica que o conceito tem fontes na web.</li>
+        <li>Linha azul tracejada: ligação cruzada entre ramos.</li>
+        <li>Arraste para mover, use a roda do mouse para o zoom. Em “Apresentar”, use ← e →.</li>
+      </ul>
+    </details>
+  </main>
+  <footer class="status"><span id="sLeft">Clique em “Bluetooth” ou em qualquer conceito para começar.</span><span id="sZoom"></span></footer>
+</div>
+<template id="fig-runas"><div class="frow"><div class="fcell"><svg aria-label="Runa Hagall" style="width:100%;height:auto;display:block" viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg"><rect width="240" height="300" rx="20" fill="#E4EEFB"/><g stroke="#1F6FD6" stroke-width="18" stroke-linecap="round" fill="none"><line x1="120" y1="40" x2="120" y2="260"/><line x1="50" y1="90" x2="190" y2="210"/><line x1="190" y1="90" x2="50" y2="210"/></g></svg><span>Hagall (H)</span></div><div class="fcell"><svg aria-label="Runa Bjarkan" style="width:100%;height:auto;display:block" viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg"><rect width="240" height="300" rx="20" fill="#E4EEFB"/><g stroke="#1F6FD6" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" fill="none"><line x1="80" y1="40" x2="80" y2="260"/><polyline points="80,40 180,95 80,150 180,205 80,260"/></g></svg><span>Bjarkan (B)</span></div></div></template>
+<template id="fig-ism"><svg aria-label="Canais do Bluetooth Classic, do Bluetooth LE e do Wi-Fi na faixa de 2,4 GHz" style="width:100%;height:auto;display:block" viewBox="0 0 1040 560" xmlns="http://www.w3.org/2000/svg"><rect width="1040" height="560" rx="16" fill="#FBFCFD"/><text x="40" y="44" font-family="Arial" font-size="26" font-weight="bold" fill="#0E1A2B">Classic: 79 canais de 1 MHz</text><rect x="58.9" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="70.3" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="81.7" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="93.2" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="104.6" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="116.0" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="127.4" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="138.9" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="150.3" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="161.7" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="173.2" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="184.6" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="196.0" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="207.4" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="218.9" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="230.3" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="241.7" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="253.2" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="264.6" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="276.0" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="287.5" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="298.9" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="310.3" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="321.8" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="333.2" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="344.6" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="356.0" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="367.5" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="378.9" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="390.3" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="401.8" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="413.2" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="424.6" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="436.1" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="447.5" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="458.9" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="470.3" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="481.8" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="493.2" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="504.6" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="516.1" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="527.5" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="538.9" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="550.4" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="561.8" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="573.2" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="584.6" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="596.1" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="607.5" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="618.9" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="630.4" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="641.8" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="653.2" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="664.6" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="676.1" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="687.5" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="698.9" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="710.4" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="721.8" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="733.2" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="744.7" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="756.1" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="767.5" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="778.9" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="790.4" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="801.8" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="813.2" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="824.7" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="836.1" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="847.5" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="859.0" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="870.4" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="881.8" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="893.2" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="904.7" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="916.1" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="927.5" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="939.0" y="60" width="8" height="90" fill="#1F6FD6"/><rect x="950.4" y="60" width="8" height="90" fill="#1F6FD6"/><text x="40" y="200" font-family="Arial" font-size="26" font-weight="bold" fill="#0E1A2B">LE: 40 canais de 2 MHz (laranja = anúncio)</text><rect x="53.9" y="216" width="18" height="90" fill="#E07A2E"/><rect x="76.7" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="99.6" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="122.4" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="145.3" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="168.2" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="191.0" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="213.9" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="236.7" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="259.6" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="282.5" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="305.3" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="328.2" y="216" width="18" height="90" fill="#E07A2E"/><rect x="351.0" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="373.9" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="396.8" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="419.6" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="442.5" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="465.3" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="488.2" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="511.1" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="533.9" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="556.8" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="579.6" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="602.5" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="625.4" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="648.2" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="671.1" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="693.9" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="716.8" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="739.7" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="762.5" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="785.4" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="808.2" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="831.1" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="854.0" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="876.8" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="899.7" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="922.5" y="216" width="18" height="90" fill="#1F6FD6"/><rect x="945.4" y="216" width="18" height="90" fill="#E07A2E"/><text x="40" y="356" font-family="Arial" font-size="26" font-weight="bold" fill="#0E1A2B">Wi-Fi: canais 1, 6 e 11 (22 MHz cada)</text><path d="M51.4,470 C81.4,370 272.9,370 302.9,470 Z" fill="#8A99AB" fill-opacity="0.45" stroke="#5A6576" stroke-width="2"/><path d="M337.2,470 C367.2,370 558.6,370 588.6,470 Z" fill="#8A99AB" fill-opacity="0.45" stroke="#5A6576" stroke-width="2"/><path d="M622.9,470 C652.9,370 844.4,370 874.4,470 Z" fill="#8A99AB" fill-opacity="0.45" stroke="#5A6576" stroke-width="2"/><line x1="30" y1="472" x2="1010" y2="472" stroke="#16202E" stroke-width="3"/><text x="40" y="516" font-family="Arial" font-size="26" fill="#4A5566">2,4 GHz</text><text x="1000" y="516" text-anchor="end" font-family="Arial" font-size="26" fill="#4A5566">frequência →</text></svg></template>
+<template id="fig-fhss"><svg aria-label="Saltos de frequência ao longo do tempo" style="width:100%;height:auto;display:block" viewBox="0 0 1040 520" xmlns="http://www.w3.org/2000/svg"><rect width="1040" height="520" rx="16" fill="#FBFCFD"/><line x1="80" y1="20" x2="992" y2="20" stroke="#E3E8EE" stroke-width="1.5"/><line x1="80" y1="58" x2="992" y2="58" stroke="#E3E8EE" stroke-width="1.5"/><line x1="80" y1="96" x2="992" y2="96" stroke="#E3E8EE" stroke-width="1.5"/><line x1="80" y1="134" x2="992" y2="134" stroke="#E3E8EE" stroke-width="1.5"/><line x1="80" y1="172" x2="992" y2="172" stroke="#E3E8EE" stroke-width="1.5"/><line x1="80" y1="210" x2="992" y2="210" stroke="#E3E8EE" stroke-width="1.5"/><line x1="80" y1="248" x2="992" y2="248" stroke="#E3E8EE" stroke-width="1.5"/><line x1="80" y1="286" x2="992" y2="286" stroke="#E3E8EE" stroke-width="1.5"/><line x1="80" y1="324" x2="992" y2="324" stroke="#E3E8EE" stroke-width="1.5"/><line x1="80" y1="362" x2="992" y2="362" stroke="#E3E8EE" stroke-width="1.5"/><line x1="80" y1="400" x2="992" y2="400" stroke="#E3E8EE" stroke-width="1.5"/><line x1="80" y1="438" x2="992" y2="438" stroke="#E3E8EE" stroke-width="1.5"/><line x1="80" y1="476" x2="992" y2="476" stroke="#E3E8EE" stroke-width="1.5"/><line x1="80" y1="20" x2="80" y2="476" stroke="#E3E8EE" stroke-width="1.5"/><line x1="137" y1="20" x2="137" y2="476" stroke="#E3E8EE" stroke-width="1.5"/><line x1="194" y1="20" x2="194" y2="476" stroke="#E3E8EE" stroke-width="1.5"/><line x1="251" y1="20" x2="251" y2="476" stroke="#E3E8EE" stroke-width="1.5"/><line x1="308" y1="20" x2="308" y2="476" stroke="#E3E8EE" stroke-width="1.5"/><line x1="365" y1="20" x2="365" y2="476" stroke="#E3E8EE" stroke-width="1.5"/><line x1="422" y1="20" x2="422" y2="476" stroke="#E3E8EE" stroke-width="1.5"/><line x1="479" y1="20" x2="479" y2="476" stroke="#E3E8EE" stroke-width="1.5"/><line x1="536" y1="20" x2="536" y2="476" stroke="#E3E8EE" stroke-width="1.5"/><line x1="593" y1="20" x2="593" y2="476" stroke="#E3E8EE" stroke-width="1.5"/><line x1="650" y1="20" x2="650" y2="476" stroke="#E3E8EE" stroke-width="1.5"/><line x1="707" y1="20" x2="707" y2="476" stroke="#E3E8EE" stroke-width="1.5"/><line x1="764" y1="20" x2="764" y2="476" stroke="#E3E8EE" stroke-width="1.5"/><line x1="821" y1="20" x2="821" y2="476" stroke="#E3E8EE" stroke-width="1.5"/><line x1="878" y1="20" x2="878" y2="476" stroke="#E3E8EE" stroke-width="1.5"/><line x1="935" y1="20" x2="935" y2="476" stroke="#E3E8EE" stroke-width="1.5"/><line x1="992" y1="20" x2="992" y2="476" stroke="#E3E8EE" stroke-width="1.5"/><rect x="84" y="176" width="49" height="30" rx="5" fill="#1F6FD6"/><rect x="141" y="366" width="49" height="30" rx="5" fill="#1F6FD6"/><rect x="198" y="62" width="49" height="30" rx="5" fill="#1F6FD6"/><rect x="255" y="290" width="49" height="30" rx="5" fill="#1F6FD6"/><rect x="312" y="24" width="49" height="30" rx="5" fill="#1F6FD6"/><rect x="369" y="442" width="49" height="30" rx="5" fill="#1F6FD6"/><rect x="426" y="252" width="49" height="30" rx="5" fill="#1F6FD6"/><rect x="483" y="100" width="49" height="30" rx="5" fill="#1F6FD6"/><rect x="540" y="404" width="49" height="30" rx="5" fill="#1F6FD6"/><rect x="597" y="138" width="49" height="30" rx="5" fill="#1F6FD6"/><rect x="654" y="328" width="49" height="30" rx="5" fill="#1F6FD6"/><rect x="711" y="214" width="49" height="30" rx="5" fill="#1F6FD6"/><rect x="768" y="62" width="49" height="30" rx="5" fill="#1F6FD6"/><rect x="825" y="366" width="49" height="30" rx="5" fill="#1F6FD6"/><rect x="882" y="176" width="49" height="30" rx="5" fill="#1F6FD6"/><rect x="939" y="290" width="49" height="30" rx="5" fill="#1F6FD6"/><polyline points="108,191 166,381 222,77 280,305 336,39 394,457 450,267 508,115 564,419 622,153 678,343 736,229 792,77 850,381 906,191 964,305" fill="none" stroke="#0E1A2B" stroke-width="2" stroke-dasharray="6 6" opacity="0.5"/><line x1="80" y1="476" x2="1002" y2="476" stroke="#16202E" stroke-width="3"/><line x1="80" y1="476" x2="80" y2="10" stroke="#16202E" stroke-width="3"/><text x="992" y="516" text-anchor="end" font-family="Arial" font-size="26" fill="#4A5566">tempo (slots de 625 µs) →</text><text transform="translate(56,476) rotate(-90)" font-family="Arial" font-size="26" fill="#4A5566">canal (frequência) →</text></svg></template>
+<template id="fig-afh"><div class="frow"><div class="fcell"><svg aria-label="Sem AFH: saltos caem nos canais ocupados pelo Wi-Fi" style="width:100%;height:auto;display:block" viewBox="0 0 780 420" xmlns="http://www.w3.org/2000/svg"><rect width="780" height="420" rx="16" fill="#FBFCFD"/><rect x="64" y="128" width="672" height="112" fill="#FBE3CF"/><line x1="64" y1="16" x2="736" y2="16" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="44" x2="736" y2="44" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="72" x2="736" y2="72" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="100" x2="736" y2="100" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="128" x2="736" y2="128" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="156" x2="736" y2="156" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="184" x2="736" y2="184" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="212" x2="736" y2="212" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="240" x2="736" y2="240" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="268" x2="736" y2="268" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="296" x2="736" y2="296" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="324" x2="736" y2="324" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="352" x2="736" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="16" x2="64" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="106" y1="16" x2="106" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="148" y1="16" x2="148" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="190" y1="16" x2="190" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="232" y1="16" x2="232" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="274" y1="16" x2="274" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="316" y1="16" x2="316" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="358" y1="16" x2="358" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="400" y1="16" x2="400" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="442" y1="16" x2="442" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="484" y1="16" x2="484" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="526" y1="16" x2="526" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="568" y1="16" x2="568" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="610" y1="16" x2="610" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="652" y1="16" x2="652" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="694" y1="16" x2="694" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="736" y1="16" x2="736" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><rect x="68" y="132" width="34" height="20" rx="5" fill="#E07A2E"/><g stroke="#FBFCFD" stroke-width="4"><line x1="76.0" y1="133.0" x2="94.0" y2="151.0"/><line x1="94.0" y1="133.0" x2="76.0" y2="151.0"/></g><rect x="110" y="272" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="152" y="188" width="34" height="20" rx="5" fill="#E07A2E"/><g stroke="#FBFCFD" stroke-width="4"><line x1="160.0" y1="189.0" x2="178.0" y2="207.0"/><line x1="178.0" y1="189.0" x2="160.0" y2="207.0"/></g><rect x="194" y="216" width="34" height="20" rx="5" fill="#E07A2E"/><g stroke="#FBFCFD" stroke-width="4"><line x1="202.0" y1="217.0" x2="220.0" y2="235.0"/><line x1="220.0" y1="217.0" x2="202.0" y2="235.0"/></g><rect x="236" y="48" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="278" y="328" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="320" y="160" width="34" height="20" rx="5" fill="#E07A2E"/><g stroke="#FBFCFD" stroke-width="4"><line x1="328.0" y1="161.0" x2="346.0" y2="179.0"/><line x1="346.0" y1="161.0" x2="328.0" y2="179.0"/></g><rect x="362" y="76" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="404" y="300" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="446" y="104" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="488" y="244" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="530" y="188" width="34" height="20" rx="5" fill="#E07A2E"/><g stroke="#FBFCFD" stroke-width="4"><line x1="538.0" y1="189.0" x2="556.0" y2="207.0"/><line x1="556.0" y1="189.0" x2="538.0" y2="207.0"/></g><rect x="572" y="48" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="614" y="272" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="656" y="132" width="34" height="20" rx="5" fill="#E07A2E"/><g stroke="#FBFCFD" stroke-width="4"><line x1="664.0" y1="133.0" x2="682.0" y2="151.0"/><line x1="682.0" y1="133.0" x2="664.0" y2="151.0"/></g><rect x="698" y="216" width="34" height="20" rx="5" fill="#E07A2E"/><g stroke="#FBFCFD" stroke-width="4"><line x1="706.0" y1="217.0" x2="724.0" y2="235.0"/><line x1="724.0" y1="217.0" x2="706.0" y2="235.0"/></g><polyline points="85,142 127,282 169,198 211,226 253,58 295,338 337,170 379,86 421,310 463,114 505,254 547,198 589,58 631,282 673,142 715,226" fill="none" stroke="#0E1A2B" stroke-width="2" stroke-dasharray="6 6" opacity="0.5"/><line x1="64" y1="352" x2="746" y2="352" stroke="#16202E" stroke-width="3"/><line x1="64" y1="352" x2="64" y2="6" stroke="#16202E" stroke-width="3"/><text x="736" y="392" text-anchor="end" font-family="Arial" font-size="26" fill="#4A5566">tempo (slots de 625 µs) →</text><text transform="translate(40,352) rotate(-90)" font-family="Arial" font-size="26" fill="#4A5566">canal (frequência) →</text></svg><span>Sem AFH</span></div><div class="fcell"><svg aria-label="Com AFH: saltos evitam os canais ocupados" style="width:100%;height:auto;display:block" viewBox="0 0 780 420" xmlns="http://www.w3.org/2000/svg"><rect width="780" height="420" rx="16" fill="#FBFCFD"/><rect x="64" y="128" width="672" height="112" fill="#FBE3CF"/><line x1="64" y1="16" x2="736" y2="16" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="44" x2="736" y2="44" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="72" x2="736" y2="72" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="100" x2="736" y2="100" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="128" x2="736" y2="128" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="156" x2="736" y2="156" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="184" x2="736" y2="184" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="212" x2="736" y2="212" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="240" x2="736" y2="240" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="268" x2="736" y2="268" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="296" x2="736" y2="296" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="324" x2="736" y2="324" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="352" x2="736" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="64" y1="16" x2="64" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="106" y1="16" x2="106" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="148" y1="16" x2="148" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="190" y1="16" x2="190" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="232" y1="16" x2="232" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="274" y1="16" x2="274" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="316" y1="16" x2="316" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="358" y1="16" x2="358" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="400" y1="16" x2="400" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="442" y1="16" x2="442" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="484" y1="16" x2="484" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="526" y1="16" x2="526" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="568" y1="16" x2="568" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="610" y1="16" x2="610" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="652" y1="16" x2="652" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="694" y1="16" x2="694" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><line x1="736" y1="16" x2="736" y2="352" stroke="#E3E8EE" stroke-width="1.5"/><rect x="68" y="76" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="110" y="272" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="152" y="272" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="194" y="48" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="236" y="48" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="278" y="328" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="320" y="300" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="362" y="76" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="404" y="300" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="446" y="104" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="488" y="244" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="530" y="272" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="572" y="48" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="614" y="272" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="656" y="76" width="34" height="20" rx="5" fill="#1F6FD6"/><rect x="698" y="48" width="34" height="20" rx="5" fill="#1F6FD6"/><polyline points="85,86 127,282 169,282 211,58 253,58 295,338 337,310 379,86 421,310 463,114 505,254 547,282 589,58 631,282 673,86 715,58" fill="none" stroke="#0E1A2B" stroke-width="2" stroke-dasharray="6 6" opacity="0.5"/><line x1="64" y1="352" x2="746" y2="352" stroke="#16202E" stroke-width="3"/><line x1="64" y1="352" x2="64" y2="6" stroke="#16202E" stroke-width="3"/><text x="736" y="392" text-anchor="end" font-family="Arial" font-size="26" fill="#4A5566">tempo (slots de 625 µs) →</text><text transform="translate(40,352) rotate(-90)" font-family="Arial" font-size="26" fill="#4A5566">canal (frequência) →</text></svg><span>Com AFH</span></div></div></template>
+<template id="fig-gfsk"><svg aria-label="Sinal GFSK para os bits 1 0 1 1 0 0 1 0" style="width:100%;height:auto;display:block" viewBox="0 0 1664 360" xmlns="http://www.w3.org/2000/svg"><rect width="1664" height="360" rx="16" fill="#FBFCFD"/><text x="156" y="44" text-anchor="middle" font-family="Arial" font-size="30" font-weight="bold" fill="#0E1A2B">1</text><text x="350" y="44" text-anchor="middle" font-family="Arial" font-size="30" font-weight="bold" fill="#0E1A2B">0</text><line x1="253" y1="60" x2="253" y2="344" stroke="#E3E8EE" stroke-width="2"/><text x="542" y="44" text-anchor="middle" font-family="Arial" font-size="30" font-weight="bold" fill="#0E1A2B">1</text><line x1="446" y1="60" x2="446" y2="344" stroke="#E3E8EE" stroke-width="2"/><text x="736" y="44" text-anchor="middle" font-family="Arial" font-size="30" font-weight="bold" fill="#0E1A2B">1</text><line x1="639" y1="60" x2="639" y2="344" stroke="#E3E8EE" stroke-width="2"/><text x="928" y="44" text-anchor="middle" font-family="Arial" font-size="30" font-weight="bold" fill="#0E1A2B">0</text><line x1="832" y1="60" x2="832" y2="344" stroke="#E3E8EE" stroke-width="2"/><text x="1122" y="44" text-anchor="middle" font-family="Arial" font-size="30" font-weight="bold" fill="#0E1A2B">0</text><line x1="1025" y1="60" x2="1025" y2="344" stroke="#E3E8EE" stroke-width="2"/><text x="1314" y="44" text-anchor="middle" font-family="Arial" font-size="30" font-weight="bold" fill="#0E1A2B">1</text><line x1="1218" y1="60" x2="1218" y2="344" stroke="#E3E8EE" stroke-width="2"/><text x="1508" y="44" text-anchor="middle" font-family="Arial" font-size="30" font-weight="bold" fill="#0E1A2B">0</text><line x1="1411" y1="60" x2="1411" y2="344" stroke="#E3E8EE" stroke-width="2"/><polyline points="60.0,82.0 62.6,82.0 65.1,82.0 67.7,82.0 70.3,82.0 72.9,82.0 75.4,82.0 78.0,82.0 80.6,82.0 83.2,82.0 85.7,82.0 88.3,82.0 90.9,82.0 93.5,82.0 96.0,82.0 98.6,82.0 101.2,82.0 103.7,82.0 106.3,82.0 108.9,82.0 111.5,82.0 114.0,82.0 116.6,82.0 119.2,82.0 121.8,82.0 124.3,82.0 126.9,82.0 129.5,82.0 132.1,82.0 134.6,82.0 137.2,82.0 139.8,82.0 142.3,82.0 144.9,82.0 147.5,82.0 150.1,82.0 152.6,82.0 155.2,82.0 157.8,82.0 160.4,82.0 162.9,82.0 165.5,82.0 168.1,82.0 170.7,82.0 173.2,82.0 175.8,82.0 178.4,82.0 180.9,82.0 183.5,82.0 186.1,82.0 188.7,82.0 191.2,82.0 193.8,82.0 196.4,82.0 199.0,82.0 201.5,82.0 204.1,82.0 206.7,82.0 209.3,82.0 211.8,82.0 214.4,82.0 217.0,82.0 219.5,82.0 222.1,82.0 224.7,82.0 227.3,82.0 229.8,82.0 232.4,82.0 235.0,82.0 237.6,82.0 240.1,82.0 242.7,82.0 245.3,82.0 247.9,82.0 250.4,82.0 253.0,138.0 255.6,138.0 258.1,138.0 260.7,138.0 263.3,138.0 265.9,138.0 268.4,138.0 271.0,138.0 273.6,138.0 276.2,138.0 278.7,138.0 281.3,138.0 283.9,138.0 286.5,138.0 289.0,138.0 291.6,138.0 294.2,138.0 296.7,138.0 299.3,138.0 301.9,138.0 304.5,138.0 307.0,138.0 309.6,138.0 312.2,138.0 314.8,138.0 317.3,138.0 319.9,138.0 322.5,138.0 325.1,138.0 327.6,138.0 330.2,138.0 332.8,138.0 335.3,138.0 337.9,138.0 340.5,138.0 343.1,138.0 345.6,138.0 348.2,138.0 350.8,138.0 353.4,138.0 355.9,138.0 358.5,138.0 361.1,138.0 363.7,138.0 366.2,138.0 368.8,138.0 371.4,138.0 373.9,138.0 376.5,138.0 379.1,138.0 381.7,138.0 384.2,138.0 386.8,138.0 389.4,138.0 392.0,138.0 394.5,138.0 397.1,138.0 399.7,138.0 402.3,138.0 404.8,138.0 407.4,138.0 410.0,138.0 412.5,138.0 415.1,138.0 417.7,138.0 420.3,138.0 422.8,138.0 425.4,138.0 428.0,138.0 430.6,138.0 433.1,138.0 435.7,138.0 438.3,138.0 440.9,138.0 443.4,138.0 446.0,82.0 448.6,82.0 451.1,82.0 453.7,82.0 456.3,82.0 458.9,82.0 461.4,82.0 464.0,82.0 466.6,82.0 469.2,82.0 471.7,82.0 474.3,82.0 476.9,82.0 479.5,82.0 482.0,82.0 484.6,82.0 487.2,82.0 489.7,82.0 492.3,82.0 494.9,82.0 497.5,82.0 500.0,82.0 502.6,82.0 505.2,82.0 507.8,82.0 510.3,82.0 512.9,82.0 515.5,82.0 518.1,82.0 520.6,82.0 523.2,82.0 525.8,82.0 528.3,82.0 530.9,82.0 533.5,82.0 536.1,82.0 538.6,82.0 541.2,82.0 543.8,82.0 546.4,82.0 548.9,82.0 551.5,82.0 554.1,82.0 556.7,82.0 559.2,82.0 561.8,82.0 564.4,82.0 566.9,82.0 569.5,82.0 572.1,82.0 574.7,82.0 577.2,82.0 579.8,82.0 582.4,82.0 585.0,82.0 587.5,82.0 590.1,82.0 592.7,82.0 595.3,82.0 597.8,82.0 600.4,82.0 603.0,82.0 605.5,82.0 608.1,82.0 610.7,82.0 613.3,82.0 615.8,82.0 618.4,82.0 621.0,82.0 623.6,82.0 626.1,82.0 628.7,82.0 631.3,82.0 633.9,82.0 636.4,82.0 639.0,82.0 641.6,82.0 644.1,82.0 646.7,82.0 649.3,82.0 651.9,82.0 654.4,82.0 657.0,82.0 659.6,82.0 662.2,82.0 664.7,82.0 667.3,82.0 669.9,82.0 672.5,82.0 675.0,82.0 677.6,82.0 680.2,82.0 682.7,82.0 685.3,82.0 687.9,82.0 690.5,82.0 693.0,82.0 695.6,82.0 698.2,82.0 700.8,82.0 703.3,82.0 705.9,82.0 708.5,82.0 711.1,82.0 713.6,82.0 716.2,82.0 718.8,82.0 721.3,82.0 723.9,82.0 726.5,82.0 729.1,82.0 731.6,82.0 734.2,82.0 736.8,82.0 739.4,82.0 741.9,82.0 744.5,82.0 747.1,82.0 749.7,82.0 752.2,82.0 754.8,82.0 757.4,82.0 759.9,82.0 762.5,82.0 765.1,82.0 767.7,82.0 770.2,82.0 772.8,82.0 775.4,82.0 778.0,82.0 780.5,82.0 783.1,82.0 785.7,82.0 788.3,82.0 790.8,82.0 793.4,82.0 796.0,82.0 798.5,82.0 801.1,82.0 803.7,82.0 806.3,82.0 808.8,82.0 811.4,82.0 814.0,82.0 816.6,82.0 819.1,82.0 821.7,82.0 824.3,82.0 826.9,82.0 829.4,82.0 832.0,138.0 834.6,138.0 837.1,138.0 839.7,138.0 842.3,138.0 844.9,138.0 847.4,138.0 850.0,138.0 852.6,138.0 855.2,138.0 857.7,138.0 860.3,138.0 862.9,138.0 865.5,138.0 868.0,138.0 870.6,138.0 873.2,138.0 875.7,138.0 878.3,138.0 880.9,138.0 883.5,138.0 886.0,138.0 888.6,138.0 891.2,138.0 893.8,138.0 896.3,138.0 898.9,138.0 901.5,138.0 904.1,138.0 906.6,138.0 909.2,138.0 911.8,138.0 914.3,138.0 916.9,138.0 919.5,138.0 922.1,138.0 924.6,138.0 927.2,138.0 929.8,138.0 932.4,138.0 934.9,138.0 937.5,138.0 940.1,138.0 942.7,138.0 945.2,138.0 947.8,138.0 950.4,138.0 952.9,138.0 955.5,138.0 958.1,138.0 960.7,138.0 963.2,138.0 965.8,138.0 968.4,138.0 971.0,138.0 973.5,138.0 976.1,138.0 978.7,138.0 981.3,138.0 983.8,138.0 986.4,138.0 989.0,138.0 991.5,138.0 994.1,138.0 996.7,138.0 999.3,138.0 1001.8,138.0 1004.4,138.0 1007.0,138.0 1009.6,138.0 1012.1,138.0 1014.7,138.0 1017.3,138.0 1019.9,138.0 1022.4,138.0 1025.0,138.0 1027.6,138.0 1030.1,138.0 1032.7,138.0 1035.3,138.0 1037.9,138.0 1040.4,138.0 1043.0,138.0 1045.6,138.0 1048.2,138.0 1050.7,138.0 1053.3,138.0 1055.9,138.0 1058.5,138.0 1061.0,138.0 1063.6,138.0 1066.2,138.0 1068.7,138.0 1071.3,138.0 1073.9,138.0 1076.5,138.0 1079.0,138.0 1081.6,138.0 1084.2,138.0 1086.8,138.0 1089.3,138.0 1091.9,138.0 1094.5,138.0 1097.1,138.0 1099.6,138.0 1102.2,138.0 1104.8,138.0 1107.3,138.0 1109.9,138.0 1112.5,138.0 1115.1,138.0 1117.6,138.0 1120.2,138.0 1122.8,138.0 1125.4,138.0 1127.9,138.0 1130.5,138.0 1133.1,138.0 1135.7,138.0 1138.2,138.0 1140.8,138.0 1143.4,138.0 1145.9,138.0 1148.5,138.0 1151.1,138.0 1153.7,138.0 1156.2,138.0 1158.8,138.0 1161.4,138.0 1164.0,138.0 1166.5,138.0 1169.1,138.0 1171.7,138.0 1174.3,138.0 1176.8,138.0 1179.4,138.0 1182.0,138.0 1184.5,138.0 1187.1,138.0 1189.7,138.0 1192.3,138.0 1194.8,138.0 1197.4,138.0 1200.0,138.0 1202.6,138.0 1205.1,138.0 1207.7,138.0 1210.3,138.0 1212.9,138.0 1215.4,138.0 1218.0,82.0 1220.6,82.0 1223.1,82.0 1225.7,82.0 1228.3,82.0 1230.9,82.0 1233.4,82.0 1236.0,82.0 1238.6,82.0 1241.2,82.0 1243.7,82.0 1246.3,82.0 1248.9,82.0 1251.5,82.0 1254.0,82.0 1256.6,82.0 1259.2,82.0 1261.7,82.0 1264.3,82.0 1266.9,82.0 1269.5,82.0 1272.0,82.0 1274.6,82.0 1277.2,82.0 1279.8,82.0 1282.3,82.0 1284.9,82.0 1287.5,82.0 1290.1,82.0 1292.6,82.0 1295.2,82.0 1297.8,82.0 1300.3,82.0 1302.9,82.0 1305.5,82.0 1308.1,82.0 1310.6,82.0 1313.2,82.0 1315.8,82.0 1318.4,82.0 1320.9,82.0 1323.5,82.0 1326.1,82.0 1328.7,82.0 1331.2,82.0 1333.8,82.0 1336.4,82.0 1338.9,82.0 1341.5,82.0 1344.1,82.0 1346.7,82.0 1349.2,82.0 1351.8,82.0 1354.4,82.0 1357.0,82.0 1359.5,82.0 1362.1,82.0 1364.7,82.0 1367.3,82.0 1369.8,82.0 1372.4,82.0 1375.0,82.0 1377.5,82.0 1380.1,82.0 1382.7,82.0 1385.3,82.0 1387.8,82.0 1390.4,82.0 1393.0,82.0 1395.6,82.0 1398.1,82.0 1400.7,82.0 1403.3,82.0 1405.9,82.0 1408.4,82.0 1411.0,138.0 1413.6,138.0 1416.1,138.0 1418.7,138.0 1421.3,138.0 1423.9,138.0 1426.4,138.0 1429.0,138.0 1431.6,138.0 1434.2,138.0 1436.7,138.0 1439.3,138.0 1441.9,138.0 1444.5,138.0 1447.0,138.0 1449.6,138.0 1452.2,138.0 1454.7,138.0 1457.3,138.0 1459.9,138.0 1462.5,138.0 1465.0,138.0 1467.6,138.0 1470.2,138.0 1472.8,138.0 1475.3,138.0 1477.9,138.0 1480.5,138.0 1483.1,138.0 1485.6,138.0 1488.2,138.0 1490.8,138.0 1493.3,138.0 1495.9,138.0 1498.5,138.0 1501.1,138.0 1503.6,138.0 1506.2,138.0 1508.8,138.0 1511.4,138.0 1513.9,138.0 1516.5,138.0 1519.1,138.0 1521.7,138.0 1524.2,138.0 1526.8,138.0 1529.4,138.0 1531.9,138.0 1534.5,138.0 1537.1,138.0 1539.7,138.0 1542.2,138.0 1544.8,138.0 1547.4,138.0 1550.0,138.0 1552.5,138.0 1555.1,138.0 1557.7,138.0 1560.3,138.0 1562.8,138.0 1565.4,138.0 1568.0,138.0 1570.5,138.0 1573.1,138.0 1575.7,138.0 1578.3,138.0 1580.8,138.0 1583.4,138.0 1586.0,138.0 1588.6,138.0 1591.1,138.0 1593.7,138.0 1596.3,138.0 1598.9,138.0 1601.4,138.0 1604.0,138.0" fill="none" stroke="#8A99AB" stroke-width="3" stroke-dasharray="8 6"/><polyline points="60.0,96.0 62.6,94.8 65.1,93.7 67.7,92.5 70.3,91.5 72.9,90.4 75.4,89.4 78.0,88.5 80.6,87.6 83.2,86.8 85.7,86.1 88.3,85.5 90.9,84.9 93.5,84.4 96.0,84.0 98.6,83.6 101.2,83.3 103.7,83.0 106.3,82.8 108.9,82.7 111.5,82.5 114.0,82.4 116.6,82.3 119.2,82.2 121.8,82.2 124.3,82.1 126.9,82.1 129.5,82.1 132.1,82.0 134.6,82.0 137.2,82.0 139.8,82.0 142.3,82.0 144.9,82.0 147.5,82.0 150.1,82.0 152.6,82.0 155.2,82.0 157.8,82.0 160.4,82.0 162.9,82.0 165.5,82.0 168.1,82.0 170.7,82.0 173.2,82.0 175.8,82.0 178.4,82.1 180.9,82.1 183.5,82.1 186.1,82.2 188.7,82.2 191.2,82.3 193.8,82.4 196.4,82.6 199.0,82.8 201.5,83.0 204.1,83.3 206.7,83.7 209.3,84.1 211.8,84.6 214.4,85.3 217.0,86.0 219.5,86.9 222.1,87.8 224.7,89.0 227.3,90.3 229.8,91.7 232.4,93.3 235.0,95.0 237.6,96.8 240.1,98.8 242.7,100.9 245.3,103.1 247.9,105.4 250.4,107.7 253.0,110.0 255.6,112.3 258.1,114.6 260.7,116.9 263.3,119.1 265.9,121.2 268.4,123.2 271.0,125.0 273.6,126.7 276.2,128.3 278.7,129.7 281.3,131.0 283.9,132.2 286.5,133.1 289.0,134.0 291.6,134.7 294.2,135.4 296.7,135.9 299.3,136.3 301.9,136.7 304.5,137.0 307.0,137.2 309.6,137.4 312.2,137.6 314.8,137.7 317.3,137.8 319.9,137.8 322.5,137.9 325.1,137.9 327.6,137.9 330.2,138.0 332.8,138.0 335.3,138.0 337.9,138.0 340.5,138.0 343.1,138.0 345.6,138.0 348.2,138.0 350.8,138.0 353.4,138.0 355.9,138.0 358.5,138.0 361.1,138.0 363.7,138.0 366.2,138.0 368.8,138.0 371.4,137.9 373.9,137.9 376.5,137.9 379.1,137.8 381.7,137.8 384.2,137.7 386.8,137.6 389.4,137.4 392.0,137.2 394.5,137.0 397.1,136.7 399.7,136.3 402.3,135.9 404.8,135.4 407.4,134.7 410.0,134.0 412.5,133.1 415.1,132.2 417.7,131.0 420.3,129.7 422.8,128.3 425.4,126.7 428.0,125.0 430.6,123.2 433.1,121.2 435.7,119.1 438.3,116.9 440.9,114.6 443.4,112.3 446.0,110.0 448.6,107.7 451.1,105.4 453.7,103.1 456.3,100.9 458.9,98.8 461.4,96.8 464.0,95.0 466.6,93.3 469.2,91.7 471.7,90.3 474.3,89.0 476.9,87.8 479.5,86.9 482.0,86.0 484.6,85.3 487.2,84.6 489.7,84.1 492.3,83.7 494.9,83.3 497.5,83.0 500.0,82.8 502.6,82.6 505.2,82.4 507.8,82.3 510.3,82.2 512.9,82.2 515.5,82.1 518.1,82.1 520.6,82.1 523.2,82.0 525.8,82.0 528.3,82.0 530.9,82.0 533.5,82.0 536.1,82.0 538.6,82.0 541.2,82.0 543.8,82.0 546.4,82.0 548.9,82.0 551.5,82.0 554.1,82.0 556.7,82.0 559.2,82.0 561.8,82.0 564.4,82.0 566.9,82.0 569.5,82.0 572.1,82.0 574.7,82.0 577.2,82.0 579.8,82.0 582.4,82.0 585.0,82.0 587.5,82.0 590.1,82.0 592.7,82.0 595.3,82.0 597.8,82.0 600.4,82.0 603.0,82.0 605.5,82.0 608.1,82.0 610.7,82.0 613.3,82.0 615.8,82.0 618.4,82.0 621.0,82.0 623.6,82.0 626.1,82.0 628.7,82.0 631.3,82.0 633.9,82.0 636.4,82.0 639.0,82.0 641.6,82.0 644.1,82.0 646.7,82.0 649.3,82.0 651.9,82.0 654.4,82.0 657.0,82.0 659.6,82.0 662.2,82.0 664.7,82.0 667.3,82.0 669.9,82.0 672.5,82.0 675.0,82.0 677.6,82.0 680.2,82.0 682.7,82.0 685.3,82.0 687.9,82.0 690.5,82.0 693.0,82.0 695.6,82.0 698.2,82.0 700.8,82.0 703.3,82.0 705.9,82.0 708.5,82.0 711.1,82.0 713.6,82.0 716.2,82.0 718.8,82.0 721.3,82.0 723.9,82.0 726.5,82.0 729.1,82.0 731.6,82.0 734.2,82.0 736.8,82.0 739.4,82.0 741.9,82.0 744.5,82.0 747.1,82.0 749.7,82.0 752.2,82.0 754.8,82.0 757.4,82.1 759.9,82.1 762.5,82.1 765.1,82.2 767.7,82.2 770.2,82.3 772.8,82.4 775.4,82.6 778.0,82.8 780.5,83.0 783.1,83.3 785.7,83.7 788.3,84.1 790.8,84.6 793.4,85.3 796.0,86.0 798.5,86.9 801.1,87.8 803.7,89.0 806.3,90.3 808.8,91.7 811.4,93.3 814.0,95.0 816.6,96.8 819.1,98.8 821.7,100.9 824.3,103.1 826.9,105.4 829.4,107.7 832.0,110.0 834.6,112.3 837.1,114.6 839.7,116.9 842.3,119.1 844.9,121.2 847.4,123.2 850.0,125.0 852.6,126.7 855.2,128.3 857.7,129.7 860.3,131.0 862.9,132.2 865.5,133.1 868.0,134.0 870.6,134.7 873.2,135.4 875.7,135.9 878.3,136.3 880.9,136.7 883.5,137.0 886.0,137.2 888.6,137.4 891.2,137.6 893.8,137.7 896.3,137.8 898.9,137.8 901.5,137.9 904.1,137.9 906.6,137.9 909.2,138.0 911.8,138.0 914.3,138.0 916.9,138.0 919.5,138.0 922.1,138.0 924.6,138.0 927.2,138.0 929.8,138.0 932.4,138.0 934.9,138.0 937.5,138.0 940.1,138.0 942.7,138.0 945.2,138.0 947.8,138.0 950.4,138.0 952.9,138.0 955.5,138.0 958.1,138.0 960.7,138.0 963.2,138.0 965.8,138.0 968.4,138.0 971.0,138.0 973.5,138.0 976.1,138.0 978.7,138.0 981.3,138.0 983.8,138.0 986.4,138.0 989.0,138.0 991.5,138.0 994.1,138.0 996.7,138.0 999.3,138.0 1001.8,138.0 1004.4,138.0 1007.0,138.0 1009.6,138.0 1012.1,138.0 1014.7,138.0 1017.3,138.0 1019.9,138.0 1022.4,138.0 1025.0,138.0 1027.6,138.0 1030.1,138.0 1032.7,138.0 1035.3,138.0 1037.9,138.0 1040.4,138.0 1043.0,138.0 1045.6,138.0 1048.2,138.0 1050.7,138.0 1053.3,138.0 1055.9,138.0 1058.5,138.0 1061.0,138.0 1063.6,138.0 1066.2,138.0 1068.7,138.0 1071.3,138.0 1073.9,138.0 1076.5,138.0 1079.0,138.0 1081.6,138.0 1084.2,138.0 1086.8,138.0 1089.3,138.0 1091.9,138.0 1094.5,138.0 1097.1,138.0 1099.6,138.0 1102.2,138.0 1104.8,138.0 1107.3,138.0 1109.9,138.0 1112.5,138.0 1115.1,138.0 1117.6,138.0 1120.2,138.0 1122.8,138.0 1125.4,138.0 1127.9,138.0 1130.5,138.0 1133.1,138.0 1135.7,138.0 1138.2,138.0 1140.8,138.0 1143.4,137.9 1145.9,137.9 1148.5,137.9 1151.1,137.8 1153.7,137.8 1156.2,137.7 1158.8,137.6 1161.4,137.4 1164.0,137.2 1166.5,137.0 1169.1,136.7 1171.7,136.3 1174.3,135.9 1176.8,135.4 1179.4,134.7 1182.0,134.0 1184.5,133.1 1187.1,132.2 1189.7,131.0 1192.3,129.7 1194.8,128.3 1197.4,126.7 1200.0,125.0 1202.6,123.2 1205.1,121.2 1207.7,119.1 1210.3,116.9 1212.9,114.6 1215.4,112.3 1218.0,110.0 1220.6,107.7 1223.1,105.4 1225.7,103.1 1228.3,100.9 1230.9,98.8 1233.4,96.8 1236.0,95.0 1238.6,93.3 1241.2,91.7 1243.7,90.3 1246.3,89.0 1248.9,87.8 1251.5,86.9 1254.0,86.0 1256.6,85.3 1259.2,84.6 1261.7,84.1 1264.3,83.7 1266.9,83.3 1269.5,83.0 1272.0,82.8 1274.6,82.6 1277.2,82.4 1279.8,82.3 1282.3,82.2 1284.9,82.2 1287.5,82.1 1290.1,82.1 1292.6,82.1 1295.2,82.0 1297.8,82.0 1300.3,82.0 1302.9,82.0 1305.5,82.0 1308.1,82.0 1310.6,82.0 1313.2,82.0 1315.8,82.0 1318.4,82.0 1320.9,82.0 1323.5,82.0 1326.1,82.0 1328.7,82.0 1331.2,82.0 1333.8,82.0 1336.4,82.1 1338.9,82.1 1341.5,82.1 1344.1,82.2 1346.7,82.2 1349.2,82.3 1351.8,82.4 1354.4,82.6 1357.0,82.8 1359.5,83.0 1362.1,83.3 1364.7,83.7 1367.3,84.1 1369.8,84.6 1372.4,85.3 1375.0,86.0 1377.5,86.9 1380.1,87.8 1382.7,89.0 1385.3,90.3 1387.8,91.7 1390.4,93.3 1393.0,95.0 1395.6,96.8 1398.1,98.8 1400.7,100.9 1403.3,103.1 1405.9,105.4 1408.4,107.7 1411.0,110.0 1413.6,112.3 1416.1,114.6 1418.7,116.9 1421.3,119.1 1423.9,121.2 1426.4,123.2 1429.0,125.0 1431.6,126.7 1434.2,128.3 1436.7,129.7 1439.3,131.0 1441.9,132.2 1444.5,133.1 1447.0,134.0 1449.6,134.7 1452.2,135.4 1454.7,135.9 1457.3,136.3 1459.9,136.7 1462.5,137.0 1465.0,137.2 1467.6,137.4 1470.2,137.6 1472.8,137.7 1475.3,137.8 1477.9,137.8 1480.5,137.9 1483.1,137.9 1485.6,137.9 1488.2,138.0 1490.8,138.0 1493.3,138.0 1495.9,138.0 1498.5,138.0 1501.1,138.0 1503.6,138.0 1506.2,138.0 1508.8,138.0 1511.4,138.0 1513.9,138.0 1516.5,138.0 1519.1,138.0 1521.7,138.0 1524.2,138.0 1526.8,138.0 1529.4,138.0 1531.9,138.0 1534.5,137.9 1537.1,137.9 1539.7,137.9 1542.2,137.8 1544.8,137.8 1547.4,137.7 1550.0,137.6 1552.5,137.5 1555.1,137.3 1557.7,137.2 1560.3,137.0 1562.8,136.7 1565.4,136.4 1568.0,136.0 1570.5,135.6 1573.1,135.1 1575.7,134.5 1578.3,133.9 1580.8,133.2 1583.4,132.4 1586.0,131.5 1588.6,130.6 1591.1,129.6 1593.7,128.5 1596.3,127.5 1598.9,126.3 1601.4,125.2 1604.0,124.0" fill="none" stroke="#E07A2E" stroke-width="5"/><polyline points="60.0,228.6 62.6,208.9 65.1,192.8 67.7,182.1 70.3,178.0 72.9,181.2 75.4,191.6 78.0,208.3 80.6,229.7 83.2,253.5 85.7,277.1 88.3,297.8 90.9,313.1 93.5,321.1 96.0,320.8 98.6,312.1 101.2,296.0 103.7,274.4 106.3,249.8 108.9,225.1 111.5,203.5 114.0,187.4 116.6,179.0 119.2,179.2 121.8,188.1 124.3,204.5 126.9,226.5 129.5,251.4 132.1,276.1 134.6,297.6 137.2,313.3 139.8,321.3 142.3,320.5 144.9,311.0 147.5,294.1 150.1,271.8 152.6,246.8 155.2,222.2 157.8,201.0 160.4,185.8 162.9,178.5 165.5,179.9 168.1,189.9 170.7,207.3 173.2,229.9 175.8,254.9 178.4,279.4 180.9,300.2 183.5,314.9 186.1,321.7 188.7,319.7 191.2,309.2 193.8,291.6 196.4,268.9 199.0,244.0 201.5,219.9 204.1,199.4 206.7,185.0 209.3,178.4 211.8,180.1 214.4,189.8 217.0,206.3 219.5,227.5 222.1,250.9 224.7,274.0 227.3,294.3 229.8,309.8 232.4,319.2 235.0,322.0 237.6,318.3 240.1,308.8 242.7,294.8 245.3,277.7 247.9,259.2 250.4,240.5 253.0,223.1 255.6,207.8 258.1,195.4 260.7,186.2 263.3,180.5 265.9,178.1 268.4,178.8 271.0,182.3 273.6,188.2 276.2,196.1 278.7,205.5 281.3,216.1 283.9,227.5 286.5,239.3 289.0,251.1 291.6,262.7 294.2,273.9 296.7,284.3 299.3,293.8 301.9,302.1 304.5,309.1 307.0,314.7 309.6,318.8 312.2,321.2 314.8,322.0 317.3,321.1 319.9,318.6 322.5,314.6 325.1,309.1 327.6,302.2 330.2,294.1 332.8,285.1 335.3,275.2 337.9,264.8 340.5,254.1 343.1,243.2 345.6,232.5 348.2,222.2 350.8,212.6 353.4,203.8 355.9,196.0 358.5,189.4 361.1,184.3 363.7,180.6 366.2,178.5 368.8,178.0 371.4,179.2 373.9,182.0 376.5,186.3 379.1,192.1 381.7,199.3 384.2,207.6 386.8,216.9 389.4,227.0 392.0,237.7 394.5,248.8 397.1,259.9 399.7,271.0 402.3,281.6 404.8,291.5 407.4,300.5 410.0,308.2 412.5,314.5 415.1,319.0 417.7,321.5 420.3,321.8 422.8,319.7 425.4,315.0 428.0,307.7 430.6,297.8 433.1,285.4 435.7,271.0 438.3,255.0 440.9,238.1 443.4,221.4 446.0,205.9 448.6,192.7 451.1,183.2 453.7,178.4 456.3,179.1 458.9,185.7 461.4,198.2 464.0,215.6 466.6,236.6 469.2,259.3 471.7,281.4 474.3,300.6 476.9,314.5 479.5,321.4 482.0,320.4 484.6,311.3 487.2,295.1 489.7,273.5 492.3,249.1 494.9,224.6 497.5,203.2 500.0,187.3 502.6,179.0 505.2,179.2 507.8,188.1 510.3,204.6 512.9,226.6 515.5,251.4 518.1,276.1 520.6,297.6 523.2,313.3 525.8,321.3 528.3,320.5 530.9,311.0 533.5,294.1 536.1,271.8 538.6,246.8 541.2,222.2 543.8,201.0 546.4,185.8 548.9,178.5 551.5,179.9 554.1,189.9 556.7,207.3 559.2,229.9 561.8,255.0 564.4,279.4 566.9,300.3 569.5,315.0 572.1,321.7 574.7,319.6 577.2,309.0 579.8,291.2 582.4,268.3 585.0,243.2 587.5,218.9 590.1,198.4 592.7,184.3 595.3,178.2 597.8,180.9 600.4,192.0 603.0,210.3 605.5,233.4 608.1,258.6 610.7,282.7 613.3,302.8 615.8,316.4 618.4,321.9 621.0,318.6 623.6,306.9 626.1,288.2 628.7,264.8 631.3,239.6 633.9,215.7 636.4,196.0 639.0,182.9 641.6,178.0 644.1,182.0 646.7,194.2 649.3,213.4 651.9,237.0 654.4,262.2 657.0,285.9 659.6,305.2 662.2,317.7 664.7,322.0 667.3,317.4 669.9,304.6 672.5,285.1 675.0,261.3 677.6,236.1 680.2,212.6 682.7,193.7 685.3,181.7 687.9,178.0 690.5,183.2 693.0,196.6 695.6,216.5 698.2,240.5 700.8,265.7 703.3,289.0 705.9,307.4 708.5,318.9 711.1,321.9 713.6,316.1 716.2,302.2 718.8,281.9 721.3,257.7 723.9,232.5 726.5,209.5 729.1,191.5 731.6,180.6 734.2,178.2 736.8,184.7 739.4,199.1 741.9,219.8 744.5,244.1 747.1,269.2 749.7,291.9 752.2,309.5 754.8,319.8 757.4,321.6 759.9,314.6 762.5,299.7 765.1,278.7 767.7,254.3 770.2,229.3 772.8,206.9 775.4,189.8 778.0,179.9 780.5,178.5 783.1,185.6 785.7,200.4 788.3,220.9 790.8,244.7 793.4,269.0 796.0,290.9 798.5,308.1 801.1,318.8 803.7,322.0 806.3,317.7 808.8,306.7 811.4,290.3 814.0,270.5 816.6,249.3 819.1,228.7 821.7,210.2 824.3,195.4 826.9,184.9 829.4,179.2 832.0,178.2 834.6,181.5 837.1,188.5 839.7,198.5 842.3,210.6 844.9,224.1 847.4,238.3 850.0,252.4 852.6,266.1 855.2,278.7 857.7,290.1 860.3,300.0 862.9,308.1 865.5,314.4 868.0,318.8 870.6,321.3 873.2,322.0 875.7,320.8 878.3,317.9 880.9,313.4 883.5,307.4 886.0,300.0 888.6,291.6 891.2,282.2 893.8,272.0 896.3,261.4 898.9,250.6 901.5,239.7 904.1,229.1 906.6,219.0 909.2,209.5 911.8,201.1 914.3,193.7 916.9,187.6 919.5,182.9 922.1,179.7 924.6,178.2 927.2,178.2 929.8,179.9 932.4,183.2 934.9,188.0 937.5,194.2 940.1,201.7 942.7,210.3 945.2,219.8 947.8,229.9 950.4,240.5 952.9,251.4 955.5,262.2 958.1,272.7 960.7,282.7 963.2,292.0 965.8,300.3 968.4,307.4 971.0,313.3 973.5,317.7 976.1,320.6 978.7,321.9 981.3,321.6 983.8,319.6 986.4,316.1 989.0,311.0 991.5,304.6 994.1,296.9 996.7,288.2 999.3,278.6 1001.8,268.3 1004.4,257.7 1007.0,246.8 1009.6,236.1 1012.1,225.6 1014.7,215.7 1017.3,206.6 1019.9,198.4 1022.4,191.5 1025.0,185.8 1027.6,181.7 1030.1,179.0 1032.7,178.0 1035.3,178.6 1037.9,180.9 1040.4,184.7 1043.0,189.9 1045.6,196.6 1048.2,204.5 1050.7,213.4 1053.3,223.1 1055.9,233.4 1058.5,244.1 1061.0,255.0 1063.6,265.7 1066.2,276.1 1068.7,285.9 1071.3,294.8 1073.9,302.8 1076.5,309.6 1079.0,315.0 1081.6,318.9 1084.2,321.3 1086.8,322.0 1089.3,321.1 1091.9,318.6 1094.5,314.6 1097.1,309.0 1099.6,302.2 1102.2,294.1 1104.8,285.1 1107.3,275.2 1109.9,264.8 1112.5,254.1 1115.1,243.2 1117.6,232.5 1120.2,222.2 1122.8,212.6 1125.4,203.8 1127.9,196.0 1130.5,189.4 1133.1,184.3 1135.7,180.6 1138.2,178.5 1140.8,178.0 1143.4,179.2 1145.9,182.0 1148.5,186.3 1151.1,192.1 1153.7,199.3 1156.2,207.6 1158.8,216.9 1161.4,227.0 1164.0,237.7 1166.5,248.8 1169.1,259.9 1171.7,271.0 1174.3,281.6 1176.8,291.5 1179.4,300.5 1182.0,308.2 1184.5,314.5 1187.1,319.0 1189.7,321.5 1192.3,321.8 1194.8,319.7 1197.4,315.0 1200.0,307.7 1202.6,297.8 1205.1,285.4 1207.7,271.0 1210.3,255.0 1212.9,238.1 1215.4,221.4 1218.0,205.9 1220.6,192.7 1223.1,183.2 1225.7,178.4 1228.3,179.1 1230.9,185.7 1233.4,198.2 1236.0,215.6 1238.6,236.6 1241.2,259.3 1243.7,281.4 1246.3,300.6 1248.9,314.5 1251.5,321.4 1254.0,320.4 1256.6,311.3 1259.2,295.1 1261.7,273.5 1264.3,249.1 1266.9,224.6 1269.5,203.2 1272.0,187.3 1274.6,179.0 1277.2,179.2 1279.8,188.1 1282.3,204.6 1284.9,226.6 1287.5,251.4 1290.1,276.1 1292.6,297.6 1295.2,313.3 1297.8,321.3 1300.3,320.5 1302.9,311.0 1305.5,294.1 1308.1,271.8 1310.6,246.8 1313.2,222.2 1315.8,201.0 1318.4,185.8 1320.9,178.5 1323.5,179.9 1326.1,189.9 1328.7,207.3 1331.2,229.9 1333.8,254.9 1336.4,279.4 1338.9,300.2 1341.5,314.9 1344.1,321.7 1346.7,319.7 1349.2,309.2 1351.8,291.6 1354.4,268.9 1357.0,244.0 1359.5,219.9 1362.1,199.4 1364.7,185.0 1367.3,178.4 1369.8,180.1 1372.4,189.8 1375.0,206.3 1377.5,227.5 1380.1,250.9 1382.7,274.0 1385.3,294.3 1387.8,309.8 1390.4,319.2 1393.0,322.0 1395.6,318.3 1398.1,308.8 1400.7,294.8 1403.3,277.7 1405.9,259.2 1408.4,240.5 1411.0,223.1 1413.6,207.8 1416.1,195.4 1418.7,186.2 1421.3,180.5 1423.9,178.1 1426.4,178.8 1429.0,182.3 1431.6,188.2 1434.2,196.1 1436.7,205.5 1439.3,216.1 1441.9,227.5 1444.5,239.3 1447.0,251.1 1449.6,262.7 1452.2,273.9 1454.7,284.3 1457.3,293.8 1459.9,302.1 1462.5,309.1 1465.0,314.7 1467.6,318.8 1470.2,321.2 1472.8,322.0 1475.3,321.1 1477.9,318.6 1480.5,314.6 1483.1,309.1 1485.6,302.2 1488.2,294.1 1490.8,285.1 1493.3,275.2 1495.9,264.8 1498.5,254.1 1501.1,243.2 1503.6,232.5 1506.2,222.2 1508.8,212.6 1511.4,203.8 1513.9,196.0 1516.5,189.4 1519.1,184.3 1521.7,180.6 1524.2,178.5 1526.8,178.0 1529.4,179.2 1531.9,182.0 1534.5,186.3 1537.1,192.1 1539.7,199.2 1542.2,207.4 1544.8,216.7 1547.4,226.7 1550.0,237.3 1552.5,248.3 1555.1,259.3 1557.7,270.1 1560.3,280.5 1562.8,290.2 1565.4,299.1 1568.0,306.7 1570.5,313.1 1573.1,317.8 1575.7,320.8 1578.3,322.0 1580.8,321.1 1583.4,318.2 1586.0,313.2 1588.6,306.1 1591.1,297.1 1593.7,286.3 1596.3,274.0 1598.9,260.5 1601.4,246.4 1604.0,232.1" fill="none" stroke="#1F6FD6" stroke-width="4"/></svg></template>
+<template id="fig-const"><div class="frow"><div class="fcell"><svg aria-label="GFSK: duas frequências, uma para o bit 0 e outra para o bit 1" style="width:100%;height:auto;display:block" viewBox="0 0 340 340" xmlns="http://www.w3.org/2000/svg"><rect width="340" height="340" rx="16" fill="#FBFCFD"/><line x1="30" y1="260" x2="310" y2="260" stroke="#8A99AB" stroke-width="2"/><path d="M60,260 C95,260 100,110 120,110 C140,110 145,260 180,260" fill="#1F6FD6" fill-opacity="0.25" stroke="#1F6FD6" stroke-width="4"/><path d="M160,260 C195,260 200,110 220,110 C240,110 245,260 280,260" fill="#E07A2E" fill-opacity="0.25" stroke="#E07A2E" stroke-width="4"/><text x="120" y="96" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#0E1A2B">0</text><text x="220" y="96" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#0E1A2B">1</text><text x="310" y="300" text-anchor="end" font-family="Arial" font-size="24" fill="#4A5566">frequência →</text></svg><span>GFSK: 1 bit</span></div><div class="fcell"><svg aria-label="Constelação pi/4-DQPSK com 4 mudanças de fase" style="width:100%;height:auto;display:block" viewBox="0 0 340 340" xmlns="http://www.w3.org/2000/svg"><rect width="340" height="340" rx="16" fill="#FBFCFD"/><circle cx="170" cy="170" r="112" fill="none" stroke="#D6DDE5" stroke-width="2" stroke-dasharray="6 6"/><line x1="20" y1="170" x2="320" y2="170" stroke="#8A99AB" stroke-width="2"/><line x1="170" y1="20" x2="170" y2="320" stroke="#8A99AB" stroke-width="2"/><circle cx="249.2" cy="90.8" r="13" fill="#1F6FD6"/><text x="274.7" y="74.3" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="#0E1A2B">00</text><circle cx="90.8" cy="90.8" r="13" fill="#1F6FD6"/><text x="65.3" y="74.3" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="#0E1A2B">01</text><circle cx="90.8" cy="249.2" r="13" fill="#1F6FD6"/><text x="65.3" y="283.7" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="#0E1A2B">11</text><circle cx="249.2" cy="249.2" r="13" fill="#1F6FD6"/><text x="274.7" y="283.7" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="#0E1A2B">10</text></svg><span>π/4-DQPSK: 2 bits</span></div><div class="fcell"><svg aria-label="Constelação 8DPSK com 8 mudanças de fase" style="width:100%;height:auto;display:block" viewBox="0 0 340 340" xmlns="http://www.w3.org/2000/svg"><rect width="340" height="340" rx="16" fill="#FBFCFD"/><circle cx="170" cy="170" r="112" fill="none" stroke="#D6DDE5" stroke-width="2" stroke-dasharray="6 6"/><line x1="20" y1="170" x2="320" y2="170" stroke="#8A99AB" stroke-width="2"/><line x1="170" y1="20" x2="170" y2="320" stroke="#8A99AB" stroke-width="2"/><circle cx="282.0" cy="170.0" r="13" fill="#1F6FD6"/><text x="318.0" y="179.0" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="#0E1A2B">000</text><circle cx="249.2" cy="90.8" r="13" fill="#1F6FD6"/><text x="274.7" y="74.3" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="#0E1A2B">001</text><circle cx="170.0" cy="58.0" r="13" fill="#1F6FD6"/><text x="170.0" y="31.0" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="#0E1A2B">011</text><circle cx="90.8" cy="90.8" r="13" fill="#1F6FD6"/><text x="65.3" y="74.3" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="#0E1A2B">010</text><circle cx="58.0" cy="170.0" r="13" fill="#1F6FD6"/><text x="22.0" y="179.0" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="#0E1A2B">110</text><circle cx="90.8" cy="249.2" r="13" fill="#1F6FD6"/><text x="65.3" y="283.7" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="#0E1A2B">111</text><circle cx="170.0" cy="282.0" r="13" fill="#1F6FD6"/><text x="170.0" y="327.0" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="#0E1A2B">101</text><circle cx="249.2" cy="249.2" r="13" fill="#1F6FD6"/><text x="274.7" y="283.7" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="#0E1A2B">100</text></svg><span>8DPSK: 3 bits</span></div></div></template>
+<template id="fig-tdd"><svg aria-label="Slots TDD alternando mestre e escravo, cada um em um canal diferente" style="width:100%;height:auto;display:block" viewBox="0 0 1664 320" xmlns="http://www.w3.org/2000/svg"><rect width="1664" height="320" rx="16" fill="#FBFCFD"/><text x="30" y="92" font-family="Arial" font-size="30" font-weight="bold" fill="#1F6FD6">Mestre</text><text x="30" y="192" font-family="Arial" font-size="30" font-weight="bold" fill="#A4500F">Escravo</text><rect x="224" y="50" width="164" height="64" rx="8" fill="#1F6FD6"/><text x="306.0" y="92" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">f1</text><line x1="220" y1="36" x2="220" y2="236" stroke="#D6DDE5" stroke-width="2"/><text x="306.0" y="270" text-anchor="middle" font-family="Arial" font-size="26" fill="#4A5566">slot 0</text><rect x="396" y="150" width="164" height="64" rx="8" fill="#E07A2E"/><text x="478.0" y="192" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">f2</text><line x1="392" y1="36" x2="392" y2="236" stroke="#D6DDE5" stroke-width="2"/><text x="478.0" y="270" text-anchor="middle" font-family="Arial" font-size="26" fill="#4A5566">slot 1</text><rect x="568" y="50" width="164" height="64" rx="8" fill="#1F6FD6"/><text x="650.0" y="92" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">f3</text><line x1="564" y1="36" x2="564" y2="236" stroke="#D6DDE5" stroke-width="2"/><text x="650.0" y="270" text-anchor="middle" font-family="Arial" font-size="26" fill="#4A5566">slot 2</text><rect x="740" y="150" width="164" height="64" rx="8" fill="#E07A2E"/><text x="822.0" y="192" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">f4</text><line x1="736" y1="36" x2="736" y2="236" stroke="#D6DDE5" stroke-width="2"/><text x="822.0" y="270" text-anchor="middle" font-family="Arial" font-size="26" fill="#4A5566">slot 3</text><rect x="912" y="50" width="164" height="64" rx="8" fill="#1F6FD6"/><text x="994.0" y="92" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">f5</text><line x1="908" y1="36" x2="908" y2="236" stroke="#D6DDE5" stroke-width="2"/><text x="994.0" y="270" text-anchor="middle" font-family="Arial" font-size="26" fill="#4A5566">slot 4</text><rect x="1084" y="150" width="164" height="64" rx="8" fill="#E07A2E"/><text x="1166.0" y="192" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">f6</text><line x1="1080" y1="36" x2="1080" y2="236" stroke="#D6DDE5" stroke-width="2"/><text x="1166.0" y="270" text-anchor="middle" font-family="Arial" font-size="26" fill="#4A5566">slot 5</text><rect x="1256" y="50" width="164" height="64" rx="8" fill="#1F6FD6"/><text x="1338.0" y="92" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">f7</text><line x1="1252" y1="36" x2="1252" y2="236" stroke="#D6DDE5" stroke-width="2"/><text x="1338.0" y="270" text-anchor="middle" font-family="Arial" font-size="26" fill="#4A5566">slot 6</text><rect x="1428" y="150" width="164" height="64" rx="8" fill="#E07A2E"/><text x="1510.0" y="192" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">f8</text><line x1="1424" y1="36" x2="1424" y2="236" stroke="#D6DDE5" stroke-width="2"/><text x="1510.0" y="270" text-anchor="middle" font-family="Arial" font-size="26" fill="#4A5566">slot 7</text><line x1="220" y1="236" x2="1596" y2="236" stroke="#16202E" stroke-width="3"/><line x1="220" y1="300" x2="392" y2="300" stroke="#0E1A2B" stroke-width="3"/><line x1="220" y1="290" x2="220" y2="310" stroke="#0E1A2B" stroke-width="3"/><line x1="392" y1="290" x2="392" y2="310" stroke="#0E1A2B" stroke-width="3"/><text x="408" y="309" font-family="Arial" font-size="26" font-weight="bold" fill="#0E1A2B">625 µs</text></svg></template>
+<template id="fig-piconet"><svg aria-label="Duas piconets ligadas por um dispositivo ponte, formando uma scatternet" style="width:100%;height:auto;display:block" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg"><rect width="1000" height="600" rx="16" fill="#FBFCFD"/><ellipse cx="300" cy="300" rx="265" ry="265" fill="#E4EEFB" stroke="#1F6FD6" stroke-width="3" stroke-dasharray="10 8"/><ellipse cx="760" cy="300" rx="215" ry="200" fill="#FBE3CF" fill-opacity="0.7" stroke="#E07A2E" stroke-width="3" stroke-dasharray="10 8"/><line x1="300" y1="300" x2="490" y2="300" stroke="#1F6FD6" stroke-width="3"/><line x1="300" y1="300" x2="418" y2="151" stroke="#1F6FD6" stroke-width="3"/><line x1="300" y1="300" x2="258" y2="115" stroke="#1F6FD6" stroke-width="3"/><line x1="300" y1="300" x2="129" y2="218" stroke="#1F6FD6" stroke-width="3"/><line x1="300" y1="300" x2="129" y2="382" stroke="#1F6FD6" stroke-width="3"/><line x1="300" y1="300" x2="258" y2="485" stroke="#1F6FD6" stroke-width="3"/><line x1="300" y1="300" x2="418" y2="449" stroke="#1F6FD6" stroke-width="3"/><line x1="490" y1="300" x2="800" y2="300" stroke="#A4500F" stroke-width="3"/><line x1="800" y1="300" x2="865" y2="187" stroke="#A4500F" stroke-width="3"/><line x1="800" y1="300" x2="930" y2="300" stroke="#A4500F" stroke-width="3"/><line x1="800" y1="300" x2="865" y2="413" stroke="#A4500F" stroke-width="3"/><circle cx="490" cy="300" r="34" fill="#0E1A2B" stroke="#FBFCFD" stroke-width="4"/><text x="490" y="310" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">P</text><circle cx="418" cy="151" r="34" fill="#1F6FD6" stroke="#FBFCFD" stroke-width="4"/><text x="418" y="161" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">E</text><circle cx="258" cy="115" r="34" fill="#1F6FD6" stroke="#FBFCFD" stroke-width="4"/><text x="258" y="125" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">E</text><circle cx="129" cy="218" r="34" fill="#1F6FD6" stroke="#FBFCFD" stroke-width="4"/><text x="129" y="228" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">E</text><circle cx="129" cy="382" r="34" fill="#1F6FD6" stroke="#FBFCFD" stroke-width="4"/><text x="129" y="392" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">E</text><circle cx="258" cy="485" r="34" fill="#1F6FD6" stroke="#FBFCFD" stroke-width="4"/><text x="258" y="495" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">E</text><circle cx="418" cy="449" r="34" fill="#1F6FD6" stroke="#FBFCFD" stroke-width="4"/><text x="418" y="459" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">E</text><circle cx="300" cy="300" r="44" fill="#0E1A2B" stroke="#FBFCFD" stroke-width="4"/><text x="300" y="310" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">M</text><circle cx="800" cy="300" r="44" fill="#7A3A08" stroke="#FBFCFD" stroke-width="4"/><text x="800" y="310" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">M</text><circle cx="865" cy="187" r="34" fill="#E07A2E" stroke="#FBFCFD" stroke-width="4"/><text x="865" y="197" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">E</text><circle cx="930" cy="300" r="34" fill="#E07A2E" stroke="#FBFCFD" stroke-width="4"/><text x="930" y="310" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">E</text><circle cx="865" cy="413" r="34" fill="#E07A2E" stroke="#FBFCFD" stroke-width="4"/><text x="865" y="423" text-anchor="middle" font-family="Arial" font-size="28" font-weight="bold" fill="#FBFCFD">E</text><text x="300" y="590" text-anchor="middle" font-family="Arial" font-size="26" font-weight="bold" fill="#1F6FD6">Piconet A</text><text x="800" y="560" text-anchor="middle" font-family="Arial" font-size="26" font-weight="bold" fill="#A4500F">Piconet B</text></svg></template>
+<template id="fig-cabo"><svg aria-label="Antes um cabo serial, depois um rádio de curto alcance" viewBox="0 0 640 300" style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg"><rect width="640" height="300" rx="14" fill="#FBFCFD"/>
+<text x="30" y="42" font-family="Arial" font-size="22" font-weight="bold" fill="#4A5566">Antes: cabo serial</text>
+<rect x="30" y="60" width="150" height="56" rx="10" fill="#FBFCFD" stroke="#1F6FD6" stroke-width="3"/><text x="105" y="96" text-anchor="middle" font-family="Arial" font-size="22" fill="#0E1A2B">Celular</text>
+<rect x="460" y="60" width="150" height="56" rx="10" fill="#FBFCFD" stroke="#1F6FD6" stroke-width="3"/><text x="535" y="96" text-anchor="middle" font-family="Arial" font-size="22" fill="#0E1A2B">Acessório</text>
+<line x1="180" y1="88" x2="460" y2="88" stroke="#5A6576" stroke-width="9" stroke-linecap="round"/>
+<text x="30" y="182" font-family="Arial" font-size="22" font-weight="bold" fill="#1F6FD6">Depois: rádio de curto alcance</text>
+<rect x="30" y="200" width="150" height="56" rx="10" fill="#FBFCFD" stroke="#1F6FD6" stroke-width="3"/><text x="105" y="236" text-anchor="middle" font-family="Arial" font-size="22" fill="#0E1A2B">Celular</text>
+<rect x="460" y="200" width="150" height="56" rx="10" fill="#FBFCFD" stroke="#1F6FD6" stroke-width="3"/><text x="535" y="236" text-anchor="middle" font-family="Arial" font-size="22" fill="#0E1A2B">Acessório</text>
+<g fill="none" stroke="#1F6FD6" stroke-width="5" stroke-linecap="round"><path d="M270,208 Q292,228 270,248"/><path d="M300,198 Q330,228 300,258"/><path d="M330,208 Q352,228 330,248"/><path d="M360,198 Q390,228 360,258"/></g></svg></template>
+<template id="fig-le40"><svg aria-label="40 canais do Bluetooth LE, 3 de anúncio e 37 de dados" viewBox="0 0 640 170" style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg"><rect width="640" height="170" rx="14" fill="#FBFCFD"/><text x="20" y="28" font-family="Arial" font-size="18" font-weight="bold" fill="#0E1A2B">40 canais de 2 MHz na faixa de 2,4 GHz</text><rect x="20" y="40" width="11" height="70" rx="2" fill="#E07A2E"/><rect x="35" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="50" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="65" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="80" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="95" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="110" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="125" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="140" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="155" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="170" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="185" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="200" y="40" width="11" height="70" rx="2" fill="#E07A2E"/><rect x="215" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="230" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="245" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="260" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="275" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="290" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="305" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="320" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="335" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="350" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="365" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="380" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="395" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="410" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="425" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="440" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="455" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="470" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="485" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="500" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="515" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="530" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="545" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="560" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="575" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="590" y="40" width="11" height="70" rx="2" fill="#8FB6EA"/><rect x="605" y="40" width="11" height="70" rx="2" fill="#E07A2E"/>
+<rect x="20" y="130" width="16" height="16" fill="#E07A2E"/><text x="44" y="144" font-family="Arial" font-size="17" fill="#0E1A2B">3 de anúncio</text><rect x="200" y="130" width="16" height="16" fill="#8FB6EA"/><text x="224" y="144" font-family="Arial" font-size="17" fill="#0E1A2B">37 de dados (com salto)</text></svg></template>
+<template id="fig-hdt"><svg aria-label="Taxa máxima: LE 1M 1 Mbps, LE 2M 2 Mbps, Classic EDR 3 Mbps, HDT 7,5 Mbps" viewBox="0 0 620 270" style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg"><rect width="620" height="270" rx="14" fill="#FBFCFD"/><text x="20" y="26" font-family="Arial" font-size="17" fill="#4A5566">Taxa máxima por PHY</text><text x="20" y="62" font-family="Arial" font-size="20" font-weight="bold" fill="#0E1A2B">LE 1M</text><rect x="160" y="40" width="44" height="32" rx="5" fill="#8FB6EA"/><text x="214" y="62" font-family="Arial" font-size="20" font-weight="bold" fill="#0E1A2B">1 Mbps</text><text x="20" y="118" font-family="Arial" font-size="20" font-weight="bold" fill="#0E1A2B">LE 2M</text><rect x="160" y="96" width="88" height="32" rx="5" fill="#8FB6EA"/><text x="258" y="118" font-family="Arial" font-size="20" font-weight="bold" fill="#0E1A2B">2 Mbps</text><text x="20" y="174" font-family="Arial" font-size="20" font-weight="bold" fill="#0E1A2B">Classic EDR</text><rect x="160" y="152" width="132" height="32" rx="5" fill="#8FB6EA"/><text x="302" y="174" font-family="Arial" font-size="20" font-weight="bold" fill="#0E1A2B">3 Mbps</text><text x="20" y="230" font-family="Arial" font-size="20" font-weight="bold" fill="#0E1A2B">HDT</text><rect x="160" y="208" width="330" height="32" rx="5" fill="#E07A2E"/><text x="500" y="230" font-family="Arial" font-size="20" font-weight="bold" fill="#0E1A2B">7,5 Mbps</text></svg></template>
+<template id="fig-market"><svg aria-label="Cerca de 6 bilhões de dispositivos por ano em 2026 e 8,1 bilhões em 2030" viewBox="0 0 520 320" style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg"><rect width="520" height="320" rx="14" fill="#FBFCFD"/>
+<line x1="60" y1="270" x2="480" y2="270" stroke="#4A5566" stroke-width="2"/>
+<rect x="110" y="122" width="110" height="148" rx="6" fill="#8FB6EA"/><text x="165" y="110" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="#0E1A2B">≈ 6 bi</text><text x="165" y="300" text-anchor="middle" font-family="Arial" font-size="20" fill="#0E1A2B">2026</text>
+<rect x="300" y="70" width="110" height="200" rx="6" fill="#1F6FD6"/><text x="355" y="58" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="#0E1A2B">8,1 bi</text><text x="355" y="300" text-anchor="middle" font-family="Arial" font-size="20" fill="#0E1A2B">2030 (projeção)</text>
+<text x="20" y="30" font-family="Arial" font-size="17" fill="#4A5566">Dispositivos Bluetooth por ano</text></svg></template>
+<dialog id="figdlg" aria-label="Figuras"></dialog>
+<script>
+(() => {
+const REFS = {
+  overview:{t:'Bluetooth technology overview',s:'Bluetooth SIG',u:'https://www.bluetooth.com/learn-about-bluetooth/tech-overview/'},
+  origin:{t:'Origin of the Bluetooth name',s:'Bluetooth SIG',u:'https://www.bluetooth.com/about-us/bluetooth-origin/'},
+  range:{t:'Bluetooth range',s:'Bluetooth SIG',u:'https://www.bluetooth.com/learn-about-bluetooth/key-attributes/range/'},
+  specs:{t:'Specifications and documents',s:'Bluetooth SIG',u:'https://www.bluetooth.com/specifications/specs/'},
+  hdt:{t:'Introducing Bluetooth High Data Throughput (HDT)',s:'Bluetooth SIG, 28/07/2026',u:'https://www.bluetooth.com/blog/bluetooth-le-will-soon-get-a-major-boost-in-speed-introducing-bluetooth-high-data-throughput-hdt/'},
+  hdtspec:{t:'High Data Throughput – rascunho da especificação',s:'Bluetooth SIG',u:'https://www.bluetooth.com/specifications/specs/high-data-throughput/'},
+  cs:{t:'Bluetooth Channel Sounding',s:'Bluetooth SIG',u:'https://www.bluetooth.com/learn-about-bluetooth/feature-enhancements/channel-sounding/'},
+  df:{t:'Bluetooth Direction Finding',s:'Bluetooth SIG',u:'https://www.bluetooth.com/learn-about-bluetooth/feature-enhancements/direction-finding/'},
+  leaudio:{t:'Bluetooth LE Audio',s:'Bluetooth SIG',u:'https://www.bluetooth.com/learn-about-bluetooth/feature-enhancements/le-audio/'},
+  auracast:{t:'Auracast broadcast audio',s:'Bluetooth SIG',u:'https://www.bluetooth.com/auracast/'},
+  coex:{t:'Wi-Fi Alliance and Bluetooth SIG initiate joint work to advance coexistence',s:'Bluetooth SIG, 19/06/2026',u:'https://www.bluetooth.com/press/wi-fi-alliance-and-bluetooth-sig-initiate-joint-work-to-advance-coexistence/'},
+  market:{t:'Bluetooth market dashboard 2026',s:'Bluetooth SIG',u:'https://www.bluetooth.com/market-dashboard/'},
+  qualify:{t:'Qualify your product',s:'Bluetooth SIG',u:'https://www.bluetooth.com/develop-with-bluetooth/qualify/'},
+  who:{t:'Who we are',s:'Bluetooth SIG',u:'https://www.bluetooth.com/about-us/who-we-are/'},
+  members:{t:'Member directory',s:'Bluetooth SIG',u:'https://www.bluetooth.com/develop-with-bluetooth/join/member-directory/'},
+  esl:{t:'Bluetooth Electronic Shelf Labels',s:'Bluetooth SIG',u:'https://www.bluetooth.com/learn-about-bluetooth/use-cases/electronic-shelf-labels/'},
+  dev:{t:'Features in development',s:'Bluetooth SIG',u:'https://www.bluetooth.com/specifications/specifications-in-development/'},
+  teleco:{t:'Tutorial Bluetooth',s:'Teleco',u:'https://teleco.com.br/tutoriais/tutorialblue/'},
+  teleco4:{t:'Tutorial Bluetooth – considerações finais',s:'Teleco',u:'https://www.teleco.com.br/tutoriais/tutorialblue/pagina_4.asp'},
+  seget:{t:'Artigo “Bluetooth” (SEGeT 2005)',s:'AEDB – Faculdade de Engenharia de Resende',u:'https://www.aedb.br/seget/arquivos/artigos05/16_artigo_Bluetooth.pdf'},
+  ieee:{t:'IEEE 802.15 Working Group',s:'IEEE',u:'https://www.ieee802.org/15/'}
+};
+const ABNT = [
+  ['BARNES, D. Bluetooth connectivity will soon get a major boost in speed: introducing Bluetooth High Data Throughput (HDT). <b>Bluetooth Blog</b>, 28 jul. 2026.','hdt'],
+  ['BLUETOOTH SIG. <b>Bluetooth technology overview</b>.','overview'],
+  ['BLUETOOTH SIG. <b>Origin of the Bluetooth name</b>.','origin'],
+  ['BLUETOOTH SIG. <b>Specifications and documents</b>.','specs'],
+  ['BLUETOOTH SIG. <b>Bluetooth Channel Sounding</b>.','cs'],
+  ['BLUETOOTH SIG. <b>Auracast broadcast audio</b>.','auracast'],
+  ['BLUETOOTH SIG. <b>Bluetooth market dashboard 2026</b>.','market'],
+  ['BLUETOOTH SIG. <b>Qualify your product</b>.','qualify'],
+  ['FERREIRA, S. A. et al. Bluetooth. In: SIMPÓSIO DE EXCELÊNCIA EM GESTÃO E TECNOLOGIA, 2., 2005, Resende. <b>Anais</b> [...]. Resende: AEDB, 2005.','seget'],
+  ['IEEE. <b>IEEE 802.15 Working Group for Wireless Specialty Networks</b>.','ieee'],
+  ['TELECO. <b>Bluetooth</b>. Tutoriais Telefonia Celular.','teleco'],
+  ['WI-FI ALLIANCE; BLUETOOTH SIG. Wi-Fi Alliance and Bluetooth SIG initiate joint work to advance coexistence. <b>Bluetooth SIG</b>, 19 jun. 2026.','coex']
+];
+const FIGS = {
+  runas:{c:'Runas Hagall (H) e Bjarkan (B), iniciais do rei Harald Blåtand; sobrepostas, formam o logo do Bluetooth.', go:'runas'},
+  cabo:{c:'Do cabo serial ao rádio de curto alcance, a ideia original da Ericsson.', go:'cabos'},
+  ism:{c:'Canais do Bluetooth Classic, do Bluetooth LE e do Wi-Fi na faixa de 2,4 GHz.', go:'ism'},
+  le40:{c:'Os 40 canais do Bluetooth LE: 3 de anúncio (laranja) e 37 de dados.', go:'le40'},
+  fhss:{c:'Saltos de frequência no FHSS: gráfico frequência × tempo.', go:'fhss'},
+  afh:{c:'Saltos sem AFH (colisões marcadas com X) e com AFH; a faixa laranja representa os canais ocupados pelo Wi-Fi.', go:'afh'},
+  gfsk:{c:'Bits (topo), frequência suavizada pelo filtro gaussiano (laranja) e sinal GFSK transmitido (azul).', go:'gfsk'},
+  const:{c:'GFSK e constelações do π/4-DQPSK e do 8DPSK: 1, 2 e 3 bits por símbolo.', go:'edr'},
+  tdd:{c:'Slots TDD de 625 µs: o mestre transmite nos pares, o escravo nos ímpares, e o canal muda a cada slot.', go:'tdd'},
+  piconet:{c:'Duas piconets (M = mestre, E = escravo) unidas por uma ponte (P) formam uma scatternet.', go:'piconet'},
+  hdt:{c:'Taxa máxima por PHY, com o HDT em destaque.', go:'hdt'},
+  market:{c:'Dispositivos Bluetooth por ano: cerca de 6 bilhões em 2026 e projeção de 8,1 bilhões em 2030.', go:'mercado'}
+};
+Object.keys(FIGS).forEach((k, i) => FIGS[k].n = i + 1);
+const figSrc = 'Fonte: elaborado pelos autores com base em Bluetooth SIG (2026).';
+const tpl = k => document.getElementById('fig-' + k).innerHTML;
+const TEAM = ['Kauan Alves Oliveira','Pedro Marangoni dos Santos','Guilherme Vaz Camargo','Christian Bomfim Branco','Kauan Breno Silva de Arruda','João Vitor da Silva Pereira'];
+
+const N = (label, o = {}) => Object.assign({ label, children: [] }, o);
+const V = (label, info) => N(label, { info });
+
+const DATA = N('Bluetooth', { id:'bt', info:'Padrão aberto de comunicação sem fio de curto alcance, baixo consumo e baixo custo. O eixo deste mapa é a camada física: como o Bluetooth usa o espectro, modula os bits e divide o canal.', refs:['overview','teleco','seget'], children:[
+  N('Padrão sem fio WPAN', { id:'wpan', p:'é um', info:'WPAN = Wireless Personal Area Network: rede pessoal sem fio, que liga os aparelhos em volta de uma pessoa (celular, fone, relógio). “Aberto” quer dizer que qualquer empresa pode usar, seguindo a especificação.', refs:['overview','teleco'], children:[
+    N('Curto alcance', { p:'de', info:'O alcance depende da potência do rádio. Menos potência significa menos alcance, mas bateria que dura mais.', refs:['range'], stack:true, childPhrase:'limitado pelas classes', children:[
+      V('Classe 1: ≈ 100 mW'), V('Classe 2: ≈ 2,5 mW'), V('Classe 3: ≈ 1 mW') ]}),
+    N('Baixo consumo', { p:'com', info:'O rádio fica desligado a maior parte do tempo e só acorda para trocar dados, principalmente no Bluetooth LE.' }),
+    N('Baixo custo', { p:'e', info:'Usa a faixa ISM, que não exige licença, e chips simples e baratos.' })
+  ]}),
+  N('Ericsson (1994, Suécia)', { id:'origem', fig:['cabo'], p:'foi criado pela', info:'O Bluetooth nasceu na Ericsson, na Suécia, em 1994. O engenheiro principal foi Jaap Haartsen, ao lado de Sven Mattisson.', refs:['origin','seget'], children:[
+    N('Cabos seriais', { id:'cabos', fig:['cabo'], p:'para substituir', info:'A ideia original era tirar o fio entre o celular e os acessórios.' }),
+    N('Jaap Haartsen', { p:'com o engenheiro', info:'Engenheiro da Ericsson apontado como o principal criador do Bluetooth.' }),
+    N('Rei Harald “Blåtand”', { fig:['runas'], p:'tem nome inspirado no', info:'Harald Gormsson, rei dinamarquês do século X, apelidado Blåtand (dente azul). Ele unificou a Dinamarca e a Noruega; o Bluetooth quis unificar a comunicação entre aparelhos.', refs:['origin'], children:[
+      N('Dinamarca e Noruega', { p:'que unificou' }),
+      N('Runas Hagall e Bjarkan', { id:'runas', fig:['runas'], p:'inspira o logo com as', info:'O logo é a sobreposição das runas Hagall (H) e Bjarkan (B), iniciais do rei.' })
+    ]})
+  ]}),
+  N('Versões', { id:'versoes', p:'evolui em', info:'O Bluetooth evoluiu mudando principalmente a camada física. Abra cada fase para ver as versões.', refs:['specs','teleco'], children:[
+    N('Classic (BR/EDR)', { p:'começou com o', info:'Primeira fase, de 1999 a 2009. BR = Basic Rate; EDR = Enhanced Data Rate.', stack:true, childPhrase:'nas versões', children:[
+      V('1.0 (1999): primeira especificação','Primeira especificação comercial.'),
+      V('1.2 (2003): AFH','Chega o salto adaptativo de frequência, que evita canais ruins.'),
+      V('2.0 + EDR (2004): até 3 Mbps','Novas modulações π/4-DQPSK e 8DPSK: mais bits por símbolo.'),
+      V('2.1 + EDR (2007): pareamento seguro','Secure Simple Pairing: pareamento mais fácil e seguro.'),
+      V('3.0 + HS (2009): Wi-Fi auxiliar','O Bluetooth combina a conexão e o Wi-Fi transporta os arquivos grandes.')
+    ]}),
+    N('Low Energy (LE)', { p:'depois ganhou o', info:'Rádio pensado para gastar muito pouco, lançado na versão 4.0.', refs:['leaudio','df'], stack:true, childPhrase:'nas versões', children:[
+      V('4.0 (2010): nasce o LE','Bluetooth Low Energy.'),
+      V('4.2 (2014): segurança e IP','Melhorias de segurança e privacidade, suporte a IP.'),
+      V('5.0 (2016): LE 2M e LE Coded','Dois novos PHYs: mais taxa (2M) e mais alcance (Coded).'),
+      V('5.1 (2019): direction finding','AoA e AoD: ângulo de chegada e de partida do sinal.'),
+      V('5.2 (2020): LE Audio e LC3','Áudio no LE com o codec LC3.'),
+      V('5.3 (2021): eficiência','Conexões mais eficientes e robustas.'),
+      V('5.4 (2023): PAwR','Anúncios periódicos com resposta, usados em etiquetas eletrônicas de preço.'),
+      V('6.0 (set/2024): Channel Sounding','Medição de distância e filtragem de anúncios.'),
+      V('6.1 (mai/2025): RPA aleatório','Endereço que muda para proteger a privacidade e economizar energia.'),
+      V('6.2 (nov/2025): intervalos curtos','Intervalos de conexão de até 375 µs.'),
+      V('6.3 (mai/2026): ajustes de RF','Channel Sounding aprimorado e ajustes de rádio.')
+    ]}),
+    N('HDT (anúncio jul/2026)', { fig:['hdt'], p:'e agora anuncia o', info:'Até 7,5 Mbps no LE. Veja o ramo “Futuro”.', refs:['hdt'] })
+  ]}),
+  N('Camada física (PHY)', { id:'phy', fig:['ism'], key:true, p:'opera na', info:'PHY é a parte que cuida do sinal de rádio em si: frequência, potência e como os bits viram onda. É o eixo deste trabalho: cada versão nova muda principalmente essa camada.', refs:['specs','teleco'], children:[
+    N('Faixa ISM de 2,4 GHz', { id:'ism', fig:['ism'], p:'usa a', info:'ISM = Industrial, Scientific and Medical. É uma faixa de uso não licenciado: qualquer um pode transmitir, por isso ela é lotada.', refs:['overview','teleco'], children:[
+      N('Wi-Fi e micro-ondas', { fig:['ism'], p:'divide espaço com', info:'Um único canal Wi-Fi de 22 MHz cobre mais de 20 canais do Bluetooth Classic. Por isso o Bluetooth salta de canal.' }),
+      N('79 canais de 1 MHz', { p:'no Classic tem' }),
+      N('40 canais de 2 MHz', { id:'le40', fig:['le40'], p:'no LE tem', info:'3 canais de anúncio (para achar e ser achado) e 37 de dados (a conversa, com salto de frequência).' })
+    ]}),
+    N('FHSS', { id:'fhss', fig:['fhss'], p:'multiplexa na frequência com', info:'Frequency Hopping Spread Spectrum. Transmissor e receptor saltam de canal juntos, seguindo uma sequência pseudoaleatória calculada a partir do endereço e do relógio do mestre. Analogia: duas pessoas que trocam de sala juntas, seguindo uma lista que só elas conhecem.', refs:['teleco','seget'], children:[
+      N('1.600 saltos por segundo', { fig:['fhss'], p:'faz até', info:'1 s ÷ 1.600 = 625 µs: um salto a cada slot de tempo.' }),
+      N('AFH (v1.2, 2003)', { id:'afh', fig:['afh'], p:'foi melhorado pelo', info:'Salto adaptativo: o dispositivo mede a qualidade dos canais, marca os ruins (por exemplo, os ocupados pelo Wi-Fi) e para de saltar neles.', children:[
+        N('Canais ocupados', { p:'que evita' })
+      ]})
+    ]}),
+    N('Modulação', { id:'mod', fig:['const','gfsk'], p:'transforma bits em onda por', info:'Modular é mudar uma característica da onda portadora (frequência, fase ou amplitude) para representar bits. Cada estado da onda é um símbolo. Taxa = símbolos por segundo × bits por símbolo.', refs:['specs','hdt'], children:[
+      N('GFSK · 1 Mbps', { id:'gfsk', fig:['gfsk'], p:'no Classic BR usa', info:'Frequência um pouco mais alta = 1, mais baixa = 0: 1 bit por símbolo. O filtro gaussiano suaviza a troca para não vazar energia nos canais vizinhos. Analogia: um apito mudando de tom.' }),
+      N('π/4-DQPSK e 8DPSK · até 3 Mbps', { id:'edr', fig:['const'], p:'no EDR usa', info:'A taxa continua em 1 milhão de símbolos por segundo, mas com 4 ou 8 mudanças de fase possíveis: 2 ou 3 bits por símbolo, ou seja, 2 ou 3 Mbps. D = diferencial: o bit está na mudança de fase entre um símbolo e o próximo.' }),
+      N('GFSK: PHYs 1M, 2M e Coded', { fig:['le40'], p:'no LE usa', info:'LE 1M: 1 Mbps. LE 2M: símbolos duas vezes mais rápidos, 2 Mbps. LE Coded: bits extras de correção, com menos taxa e mais alcance. O GFSK tem amplitude constante e permite um amplificador simples, que gasta pouco.' }),
+      N('QPSK e QAM · até 7,5 Mbps', { fig:['hdt'], p:'no HDT usa', info:'Símbolos fixos em 2 milhões por segundo, com mais bits em cada um. Para compensar o ruído, usa correção de erros (FEC) e taxa adaptativa.', refs:['hdt'] })
+    ]}),
+    N('TDD', { id:'tdd', fig:['tdd'], p:'multiplexa no tempo com', info:'Time Division Duplex: ida e volta no mesmo canal, alternando no tempo, como um walkie-talkie. Junto com o FHSS, forma a multiplexação do Bluetooth: frequência e tempo. É o TDD que permite ao mestre dividir o tempo da piconet entre até 7 escravos.', refs:['teleco'], children:[
+      N('Slots de 625 µs', { fig:['tdd'], p:'dividido em' }),
+      N('Mestre nos pares, escravo nos ímpares', { p:'alternando', info:'O mestre transmite nos slots pares e o escravo chamado responde no slot ímpar seguinte. É o “polling”: o mestre chama cada escravo por vez.' })
+    ]})
+  ]}),
+  N('Topologia', { id:'topo', fig:['piconet'], p:'organiza-se em', info:'Como os aparelhos se organizam na rede.', refs:['teleco4','seget'], children:[
+    N('Piconet', { id:'piconet', fig:['piconet'], p:'forma uma', info:'1 mestre + até 7 escravos ativos. O mestre define o relógio e a sequência de saltos. No LE, os nomes atuais são central e periférico.' }),
+    N('Scatternet', { fig:['piconet'], p:'que se une em', info:'Um dispositivo ponte participa de duas piconets e liga as redes, alternando entre elas no tempo.' })
+  ]}),
+  N('Bluetooth SIG (1998)', { id:'sig', p:'é padronizado pelo', info:'Special Interest Group: associação de empresas que escreve e mantém a especificação Core.', refs:['who','specs'], children:[
+    N('Ericsson, IBM, Intel, Nokia e Toshiba', { p:'fundado por' }),
+    N('IEEE 802.15.1', { p:'antes também pelo', info:'O IEEE publicou as primeiras versões como a norma 802.15.1. Ela foi retirada em 2018, e a especificação Core ficou só com o SIG.', refs:['ieee'] }),
+    N('Qualificação', { p:'exige', info:'Todo produto passa por testes e qualificação para usar o nome e o logo Bluetooth. Isso garante que marcas diferentes funcionem juntas.', refs:['qualify'] }),
+    N('Especificação Core', { p:'publica a', info:'Hoje recebe duas atualizações por ano.', refs:['specs'] })
+  ]}),
+  N('Fabricantes de chips', { id:'fab', p:'é produzido por', info:'Todos seguem a mesma especificação do SIG: por isso um chip de uma marca conversa com o celular de outra.', refs:['members'], stack:true, childPhrase:'como', children:[
+    V('Qualcomm','Chips de áudio e de celulares.'), V('Nordic Semiconductor','Chips BLE para IoT e wearables.'), V('Espressif','ESP32: Wi-Fi + Bluetooth barato.'),
+    V('Texas Instruments','Microcontroladores sem fio.'), V('Silicon Labs','Chips para IoT e casa inteligente.'), V('Broadcom','Combos Wi-Fi + Bluetooth.'),
+    V('Realtek','Fones, PCs e periféricos.'), V('Ceva','Vende IP: o projeto do rádio, licenciado para outros fabricantes.')
+  ]}),
+  N('Aplicações', { id:'apps', p:'é usado em', info:'Onde o Bluetooth aparece no dia a dia.', refs:['overview','leaudio'], stack:true, childPhrase:'como', children:[
+    V('Áudio (fones TWS)','True Wireless Stereo: fones sem nenhum fio, nem entre os dois lados.'),
+    V('Automotivo','Multimídia, viva-voz e conexão com o celular.'),
+    V('Wearables','Relógios e pulseiras que medem batimentos e passos.'),
+    V('IoT e sensores','Casa inteligente, indústria e saúde.'),
+    V('Beacons e localização','Sinalização e localização em ambientes internos.'),
+    V('Chave digital','Abrir o carro ou a porta pelo celular.'),
+    N('Etiquetas de preço', { info:'Etiquetas eletrônicas de prateleira atualizadas pelo Bluetooth (PAwR, versão 5.4).', refs:['esl'] })
+  ]}),
+  N('Futuro', { id:'futuro', p:'caminha para o', info:'O que já foi anunciado e o que está em desenvolvimento.', refs:['dev'], children:[
+    N('HDT', { id:'hdt', fig:['hdt'], p:'tem como novidade o', info:'High Data Throughput, anunciado em 28/07/2026. O LE passa de 2 para até 7,5 Mbps, quase 4 vezes mais, sem perder o baixo consumo. Mesma ideia do EDR: mais bits em cada símbolo.', refs:['hdt','hdtspec'], children:[
+      N('QPSK e QAM', { p:'usa', info:'Os símbolos ficam fixos em 2 milhões por segundo; o ganho vem de mais bits por símbolo. O receptor usa detecção coerente, que decodifica o sinal com mais precisão.' }),
+      N('FEC', { p:'corrige erros com', info:'Forward Error Correction: bits extras que permitem ao receptor corrigir erros sem pedir retransmissão.' }),
+      N('Taxa adaptativa', { p:'tem', info:'Cada pacote informa sua taxa no cabeçalho; se o sinal piorar, o aparelho reduz a velocidade para não perder a conexão.' }),
+      N('Fim de 2026', { p:'entra na especificação Core no' })
+    ]}),
+    N('Channel Sounding', { p:'mede distância com', info:'Veio na versão 6.0: mede a distância entre aparelhos com precisão de centímetros. É útil para chave digital e para achar objetos.', refs:['cs'] }),
+    N('Auracast', { p:'transmite áudio com', info:'Um transmissor e vários fones: áudio em locais públicos, como aeroportos, academias e TVs.', refs:['auracast'] }),
+    N('Faixa de 6 GHz', { p:'estuda a convivência com o Wi-Fi na', info:'Em junho de 2026, o Bluetooth SIG e a Wi-Fi Alliance iniciaram um trabalho conjunto sobre coexistência.', refs:['coex','dev'] }),
+    N('Mercado em crescimento', { id:'mercado', fig:['market'], p:'tem', info:'Projeção do SIG: de cerca de 6 bilhões de dispositivos por ano em 2026 para 8,1 bilhões em 2030.', refs:['market'] })
+  ]})
+]});
+
+const CROSS = [['versoes','phy','cada versão muda a']];
+
+const STEPS = [
+  {id:'bt', t:'Visão geral'}, {id:'wpan', t:'O que é'}, {id:'origem', t:'Origem e nome'}, {id:'versoes', t:'Versões'},
+  {id:'phy', t:'Camada física'}, {id:'ism', t:'Faixa ISM'}, {id:'fhss', t:'FHSS e AFH'}, {id:'mod', t:'Modulação'},
+  {id:'tdd', t:'TDD'}, {id:'topo', t:'Topologia'}, {id:'sig', t:'Padronização'}, {id:'fab', t:'Fabricantes'},
+  {id:'apps', t:'Aplicações'}, {id:'futuro', t:'Futuro'}, {id:'hdt', t:'Notícia: HDT'},
+  {id:'fim', t:'Conclusão', note:{title:'Conclusão', text:'A base do Bluetooth ficou igual desde 1999: faixa de 2,4 GHz, salto de frequência (FHSS) e divisão no tempo (TDD). O que mudou foi a modulação, ou seja, quantos bits cada símbolo carrega: de 1 Mbps no GFSK a 3 Mbps no EDR e até 7,5 Mbps no HDT, sem perder o baixo consumo.'}}
+];
+
+// ---------- measurement ----------
+const FS = 'Verdana, "DejaVu Sans", Tahoma, Geneva, sans-serif';
+const STY = {
+  root:{font:`bold 22px ${FS}`, size:22, weight:'bold', lh:28, px:22, py:12, max:280},
+  hub:{font:`bold 13px ${FS}`, size:13, weight:'bold', lh:17, px:12, py:9, max:150},
+  concept:{font:`12px ${FS}`, size:12, weight:'normal', lh:16, px:10, py:7, max:150}
+};
+const PF = `11px ${FS}`;
+const ctx = document.createElement('canvas').getContext('2d');
+const tw = (t, f) => { ctx.font = f; return ctx.measureText(t).width; };
+function wrap(t, f, max){
+  const words = t.split(' '), lines = []; let cur = '';
+  for (const w of words){ const test = cur ? cur + ' ' + w : w; if (tw(test, f) > max && cur){ lines.push(cur); cur = w; } else cur = test; }
+  lines.push(cur); return lines;
+}
+const byId = {}; let cnt = 0;
+function prep(n, parent, depth){
+  n.id = n.id || 'n' + (++cnt); byId[n.id] = n;
+  n.parent = parent; n.depth = depth;
+  n.kind = depth === 0 ? 'root' : depth === 1 ? 'hub' : 'concept';
+  const s = STY[n.kind]; n.st = s;
+  n.lines = wrap(n.label, s.font, (parent && parent.childPhrase) ? 250 : s.max);
+  n.w = Math.ceil(Math.max(...n.lines.map(l => tw(l, s.font)))) + s.px * 2;
+  n.h = n.lines.length * s.lh + s.py * 2;
+  const phr = n.p || (parent && parent.childPhrase);
+  n.phrase = phr;
+  if (n.p){ n.plines = wrap(n.p, PF, 96); n.pw = Math.ceil(Math.max(...n.plines.map(l => tw(l, PF)))) + 12; n.ph = n.plines.length * 13 + 6; }
+  if (n.childPhrase){ n.cplines = wrap(n.childPhrase, PF, 150); n.cpw = Math.ceil(Math.max(...n.cplines.map(l => tw(l, PF)))) + 12; n.cph = n.cplines.length * 13 + 6; }
+  n.expanded = false; n.refs = n.refs || []; n.fig = n.fig || [];
+  n.children.forEach(c => prep(c, n, depth + 1));
+}
+prep(DATA, null, 0);
+DATA.expanded = true;
+
+// ---------- layout (compact: two rows of hubs, each branch as an indented outline) ----------
+const IND = 16, BR = 16, VG = 10, COLGAP = 44;
+const ROWS = [['wpan','origem','versoes','phy'], ['topo','sig','fab','apps','futuro']];
+const vis = n => n.expanded ? n.children : [];
+const isVis = id => { for (let m = byId[id].parent; m; m = m.parent) if (!m.expanded) return false; return true; };
+function visible(){ const out = []; (function walk(n){ out.push(n); vis(n).forEach(walk); })(DATA); return out; }
+const U = (a, b) => ({x0:Math.min(a.x0,b.x0), y0:Math.min(a.y0,b.y0), x1:Math.max(a.x1,b.x1), y1:Math.max(a.y1,b.y1)});
+function outline(n, x, y){
+  n.left = x; n.x = x + n.w / 2; n.y = y;
+  n.ext = {x0:x, y0:y, x1:x + n.w, y1:y + n.h};
+  const kids = vis(n); if (!kids.length) return n.ext;
+  n.spineX = x + IND;
+  let yy = y + n.h, kidX;
+  if (n.childPhrase){ n.cpy = yy + 10; yy += n.cph + 18; kidX = n.spineX + 18; n.ext.x1 = Math.max(n.ext.x1, n.spineX - 6 + n.cpw); }
+  else { n.pwMax = Math.max(...kids.map(k => k.pw || 0)); kidX = n.spineX + 10 + n.pwMax + BR; yy += 14; }
+  kids.forEach(k => {
+    const e = outline(k, kidX, yy);
+    k.by = yy + k.h / 2;
+    k.lx = n.spineX + 10 + (n.pwMax || 0) / 2;
+    n.ext = U(n.ext, e);
+    yy = Math.max(e.y1, k.by + (k.ph || 0) / 2) + VG;
+  });
+  n.lastBy = kids[kids.length - 1].by;
+  return n.ext;
+}
+function shift(n, dx){
+  n.x += dx; n.left += dx; if (n.spineX != null) n.spineX += dx; if (n.lx != null) n.lx += dx;
+  n.ext = {x0:n.ext.x0 + dx, y0:n.ext.y0, x1:n.ext.x1 + dx, y1:n.ext.y1};
+  vis(n).forEach(k => shift(k, dx));
+}
+function crossGapHub(a, b){
+  let g = 0;
+  CROSS.forEach(([x, y, t]) => { if (x === a.id && y === b.id && isVis(x) && isVis(y)) g = Math.ceil(tw(t, PF)) + 40; });
+  return g;
+}
+let LAYOUT = null;
+function layout(){
+  const R = DATA;
+  if (!R.expanded){ R.x = 0; R.y = 0; R.left = -R.w / 2; R.ext = {x0:R.left, y0:0, x1:R.w / 2, y1:R.h}; LAYOUT = null; return; }
+  let y = R.h + 28, maxW = 0; const rows = [];
+  ROWS.forEach(ids => {
+    const hubs = ids.map(id => byId[id]);
+    const busY = y, top = busY + Math.max(...hubs.map(h => h.ph || 0)) + 30;
+    let cx = 0, rowBottom = top;
+    hubs.forEach((h, i) => {
+      h.depthRow = rows.length;
+      const pad = Math.max(0, ((h.pw || 0) - h.w) / 2);
+      const e = outline(h, cx + pad, top);
+      h.ext = U(e, {x0:cx, y0:busY, x1:cx + pad + h.w / 2 + (h.pw || 0) / 2, y1:top});
+      rowBottom = Math.max(rowBottom, h.ext.y1);
+      cx = h.ext.x1 + (i < hubs.length - 1 ? COLGAP + crossGapHub(h, hubs[i + 1]) : 0);
+    });
+    rows.push({busY, hubs, w:cx});
+    maxW = Math.max(maxW, cx);
+    y = rowBottom + 40;
+  });
+  rows.forEach(r => { const dx = (maxW - r.w) / 2; r.hubs.forEach(h => shift(h, dx)); });
+  R.x = maxW / 2; R.y = 0; R.left = R.x - R.w / 2;
+  const trunkX = Math.min(...rows.map(r => r.hubs[0].ext.x0)) - 22;
+  LAYOUT = {rows, trunkX};
+}
+
+// ---------- render ----------
+const svg = document.getElementById('map'), vp = document.getElementById('vp');
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+let prevVis = new Set(), selId = null;
+function phraseBox(cx, cy, lines, cls){
+  lines = lines || [''];
+  const w = Math.ceil(Math.max(...lines.map(l => tw(l, PF)))) + 12, h = lines.length * 13 + 6;
+  let t = `<g class="ph ${cls || ''}"><rect x="${cx - w/2}" y="${cy - h/2}" width="${w}" height="${h}" rx="3"/>`;
+  lines.forEach((l, i) => { t += `<text x="${cx}" y="${cy - h/2 + 3 + 10 + i * 13}" text-anchor="middle" font-family='${FS}' font-size="11">${esc(l)}</text>`; });
+  return t + '</g>';
+}
+function render(){
+  layout();
+  const nodes = visible(), vset = new Set(nodes.map(n => n.id));
+  let edges = '', labels = '', out = '';
+  const R = DATA;
+  if (LAYOUT){
+    const {rows, trunkX} = LAYOUT, last = rows[rows.length - 1];
+    edges += `<path class="edge" d="M${R.x},${R.y + R.h} V${rows[0].busY}"/>`;
+    edges += `<path class="edge" d="M${trunkX},${rows[0].busY} V${last.busY}"/>`;
+    rows.forEach(r => {
+      const xs = r.hubs.map(h => h.x);
+      edges += `<path class="edge" d="M${trunkX},${r.busY} H${Math.max(R.x, ...xs)}"/>`;
+      r.hubs.forEach(h => {
+        edges += `<path class="edge" marker-end="url(#arr)" d="M${h.x},${r.busY} V${h.y - 1}"/>`;
+        labels += phraseBox(h.x, (r.busY + h.y) / 2, h.plines);
+      });
+    });
+  }
+  nodes.forEach(n => {
+    if (n.depth < 1) return;
+    const kids = vis(n); if (!kids.length) return;
+    const lastK = kids[kids.length - 1];
+    edges += `<path class="edge" d="M${n.spineX},${n.y + n.h} V${lastK.by}"/>`;
+    kids.forEach(k => {
+      edges += `<path class="edge" marker-end="url(#arr)" d="M${n.spineX},${k.by} H${k.left - 1}"/>`;
+      if (!n.childPhrase) labels += phraseBox(k.lx, k.by, k.plines);
+    });
+    if (n.childPhrase) labels += phraseBox(n.spineX - 6 + n.cpw / 2, n.cpy + n.cph / 2, n.cplines);
+  });
+  CROSS.forEach(([a, b, t]) => {
+    if (!vset.has(a) || !vset.has(b)) return;
+    const A = byId[a], B = byId[b];
+    const ax = A.x + A.w/2, ay = A.y + A.h/2, bx = B.x - B.w/2, by = B.y + B.h/2;
+    edges += `<path class="cross" marker-end="url(#arrx)" d="M${ax},${ay} L${bx - 1},${by}"/>`;
+    labels += phraseBox((ax + bx)/2, (ay + by)/2, [t], 'x');
+  });
+  nodes.forEach(n => {
+    const s = n.st, has = n.children.length > 0;
+    const cls = ['node', n.kind, n.key ? 'key' : '', prevVis.size && !prevVis.has(n.id) ? 'enter' : '', n.id === selId ? 'sel' : ''].join(' ');
+    const aria = esc(n.label) + (has ? (n.expanded ? ', aberto' : `, fechado, ${n.children.length} ramos`) : '');
+    let g = `<g class="${cls}" data-id="${n.id}" tabindex="0" role="button" aria-label="${aria}"${has ? ` aria-expanded="${n.expanded}"` : ''} transform="translate(${n.left},${n.y})">`;
+    g += `<rect class="sh" x="3" y="3" width="${n.w}" height="${n.h}" rx="${n.kind==='root'?10:6}"/>`;
+    g += `<rect class="box" width="${n.w}" height="${n.h}" rx="${n.kind==='root'?10:6}"/>`;
+    n.lines.forEach((l, i) => { g += `<text x="${n.w/2}" y="${s.py + s.lh*i + s.size}" text-anchor="middle" font-family='${FS}' font-size="${s.size}" font-weight="${s.weight}">${esc(l)}</text>`; });
+    if (n.refs.length) g += `<g class="res" data-res="1" transform="translate(${n.w - 6},${-9})"><rect width="12" height="15" rx="1"/><path d="M3 5h6M3 8h6M3 11h4"/></g>`;
+    if (n.fig.length) g += `<g class="pic" data-res="1" transform="translate(${n.w - (n.refs.length ? 25 : 8)},${-8})"><rect width="16" height="13" rx="1"/><path d="M2 11 L6 6 L9 9 L11 7 L14 11 Z"/><circle cx="11.5" cy="4" r="1.6"/></g>`;
+    if (has) g += `<g class="badge" transform="translate(${n.w/2},${n.h})"><circle r="8"/><text y="4" text-anchor="middle" font-family='${FS}' font-size="12">${n.expanded ? '−' : '+'}</text></g>`;
+    out += g + '</g>';
+  });
+  vp.innerHTML = edges + labels + out;
+  prevVis = vset;
+}
+
+// ---------- view (pan/zoom) ----------
+const view = {k:1, tx:0, ty:0};
+const mainEl = document.querySelector('main');
+function apply(instant){
+  vp.classList.toggle('instant', !!instant);
+  vp.style.transform = `translate(${view.tx}px,${view.ty}px) scale(${view.k})`;
+  document.getElementById('sZoom').textContent = `Zoom ${Math.round(view.k * 100)}%`;
+}
+function noteCovers(){ return note.classList.contains('open') && window.innerWidth > 700; }
+function fit(b, instant){
+  const r = mainEl.getBoundingClientRect(), pad = 30;
+  let aw = r.width, ah = r.height;
+  if (noteCovers()) aw -= 384;
+  else if (note.classList.contains('open')) ah -= Math.min(note.offsetHeight, r.height * 0.55);
+  if (pres.classList.contains('open')) ah -= 56;
+  const bw = Math.max(1, b.x1 - b.x0), bh = Math.max(1, b.y1 - b.y0);
+  view.k = Math.max(0.15, Math.min((aw - pad*2) / bw, (ah - pad*2) / bh, 1.35));
+  view.tx = aw/2 - view.k * (b.x0 + bw/2);
+  view.ty = pad + Math.max(0, (ah - pad*2 - view.k*bh) / 2) - view.k * b.y0;
+  apply(instant);
+}
+function fitAll(instant){ const bb = vp.getBBox(); fit({x0:bb.x - 6, y0:bb.y - 12, x1:bb.x + bb.width + 6, y1:bb.y + bb.height + 6}, instant); }
+function subtree(n){
+  if (n === DATA) return null;
+  let b = {...n.ext};
+  if (n.depth >= 2) b = U(b, {x0:n.parent.left, y0:n.parent.y, x1:n.parent.left + n.parent.w, y1:n.parent.y + n.parent.h});
+  return b;
+}
+function focusOn(n, instant){ const b = subtree(n); if (b) fit(b, instant); else fitAll(instant); }
+function zoomBy(f, cx, cy){
+  const r = mainEl.getBoundingClientRect();
+  cx = cx ?? r.width/2; cy = cy ?? r.height/2;
+  const k2 = Math.max(0.15, Math.min(3, view.k * f));
+  view.tx = cx - (cx - view.tx) * (k2 / view.k); view.ty = cy - (cy - view.ty) * (k2 / view.k); view.k = k2;
+}
+let drag = null, moved = false;
+svg.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  drag = {x:e.clientX, y:e.clientY, tx:view.tx, ty:view.ty, id:e.pointerId}; moved = false;
+});
+svg.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (!moved && Math.hypot(dx, dy) > 5){ moved = true; svg.setPointerCapture(drag.id); svg.classList.add('dragging'); }
+  if (moved){ view.tx = drag.tx + dx; view.ty = drag.ty + dy; apply(true); }
+});
+const endDrag = () => { drag = null; svg.classList.remove('dragging'); };
+svg.addEventListener('pointerup', endDrag); svg.addEventListener('pointercancel', endDrag);
+svg.addEventListener('wheel', e => {
+  e.preventDefault();
+  const r = mainEl.getBoundingClientRect();
+  zoomBy(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); apply(true);
+}, {passive:false});
+
+// ---------- note panel ----------
+const note = document.getElementById('note');
+function crumb(n){ const a = []; for (let m = n; m; m = m.parent) a.unshift(m.label); return a.join(' › '); }
+function openNote(n, focusRefs){
+  selId = n.id;
+  const prop = n.parent ? `<p class="prop"><b>${esc(n.parent.label)}</b> ${esc(n.phrase || '')} <b>${esc(n.label)}</b></p>` : '';
+  const refs = n.refs.length ? `<h3 id="nrefs">Fontes na web</h3><ul>${n.refs.map(k => `<li><a href="${REFS[k].u}" target="_blank" rel="noopener">${esc(REFS[k].t)}</a><span class="src">${esc(REFS[k].s)}</span></li>`).join('')}</ul>` : '';
+  const kids = n.children.length ? `<h3>Ramos</h3><div class="kids">${n.children.map(c => `<button data-go="${c.id}">${esc(c.label)}</button>`).join('')}</div>` : '';
+  const figs = n.fig.map(k => `<figure data-open="${k}" title="Clique para ampliar"><div class="figimg">${tpl(k)}</div><figcaption><b>Figura ${FIGS[k].n}</b> – ${esc(FIGS[k].c)} ${figSrc}</figcaption></figure>`).join('');
+  note.innerHTML = `<button class="close" aria-label="Fechar nota">×</button><p class="crumb">${esc(crumb(n))}</p><h2>${esc(n.label)}</h2>${prop}${figs}${n.info ? `<p>${esc(n.info)}</p>` : ''}${kids}${refs}`;
+  note.classList.add('open');
+  note.scrollTop = 0;
+}
+function openText(title, html){ note.innerHTML = `<button class="close" aria-label="Fechar nota">×</button><h2>${esc(title)}</h2>${html}`; note.classList.add('open'); note.scrollTop = 0; }
+function closeNote(){ note.classList.remove('open'); selId = null; render(); }
+note.addEventListener('click', e => {
+  if (e.target.closest('.close')) return closeNote();
+  const fo = e.target.closest('[data-open]'); if (fo) return openFig(fo.dataset.open);
+  const go = e.target.closest('[data-go]');
+  if (go){ const n = byId[go.dataset.go]; expandPath(n); if (n.children.length) n.expanded = true; selId = n.id; render(); openNote(n); focusOn(n); focusNode(n.id); }
+});
+
+// ---------- interaction ----------
+function expandPath(n){ for (let m = n.parent; m; m = m.parent) m.expanded = true; }
+function focusNode(id){ const el = vp.querySelector(`[data-id="${id}"]`); if (el) el.focus({preventScroll:true}); }
+function activate(id, fromRes){
+  const n = byId[id]; hideHelp();
+  if (n.children.length && !fromRes) n.expanded = !n.expanded;
+  openNote(n, fromRes);
+  render();
+  if (n.children.length && !fromRes){ if (n.expanded) focusOn(n); }
+  focusNode(id);
+  document.getElementById('sLeft').textContent = crumb(n);
+}
+vp.addEventListener('click', e => {
+  if (moved) return;
+  const g = e.target.closest('.node'); if (!g) return;
+  activate(g.dataset.id, !!e.target.closest('[data-res]'));
+});
+vp.addEventListener('keydown', e => {
+  const g = e.target.closest('.node'); if (!g) return;
+  if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); activate(g.dataset.id, false); }
+});
+function setAll(v){ Object.values(byId).forEach(n => n.expanded = v); DATA.expanded = true; }
+const hideHelp = () => { document.querySelector('.help').open = false; };
+document.getElementById('bExpand').onclick = () => { setAll(true); note.classList.remove('open'); selId = null; render(); fitAll(); };
+document.getElementById('bCollapse').onclick = () => { setAll(false); note.classList.remove('open'); selId = null; render(); fitAll(); };
+document.getElementById('bFit').onclick = () => fitAll();
+document.getElementById('bIn').onclick = () => { zoomBy(1.25); apply(); };
+document.getElementById('bOut').onclick = () => { zoomBy(0.8); apply(); };
+document.getElementById('bRefs').onclick = () => {
+  selId = null; render();
+  openText('Fontes e equipe', `<p><b>Equipe:</b> ${TEAM.map(esc).join(', ')}.</p><p>Tecnologia de Comunicação · Engenharia Elétrica · Universidade de Sorocaba · 01/10/2026.</p><h3>Referências</h3><ul>${ABNT.map(([t, k]) => `<li>${t} Disponível em: <a href="${REFS[k].u}" target="_blank" rel="noopener">${REFS[k].u}</a>. Acesso em: 25 set. 2026.</li>`).join('')}</ul>`);
+};
+
+// ---------- figures dialog ----------
+const dlg = document.getElementById('figdlg');
+function showDlg(title, body){
+  dlg.innerHTML = `<div class="dlghead"><h2>${esc(title)}</h2><button data-close>Fechar</button></div><div class="dlgbody">${body}</div>`;
+  if (!dlg.open) dlg.showModal();
+}
+function openFig(k){
+  showDlg(`Figura ${FIGS[k].n}`, `<figure class="big" style="margin:0"><div class="figimg">${tpl(k)}</div><figcaption><b>Figura ${FIGS[k].n}</b> – ${esc(FIGS[k].c)} ${figSrc}</figcaption></figure>`);
+}
+function openGallery(){
+  showDlg('Figuras do mapa', `<div class="gal">${Object.keys(FIGS).map(k => `<figure><div class="figimg" data-big="${k}" title="Clique para ampliar">${tpl(k)}</div><figcaption><b>Figura ${FIGS[k].n}</b> – ${esc(FIGS[k].c)} ${figSrc}</figcaption><button data-go="${FIGS[k].go}">Ver no mapa</button></figure>`).join('')}</div>`);
+}
+dlg.addEventListener('click', e => {
+  if (e.target === dlg || e.target.closest('[data-close]')) return dlg.close();
+  const b = e.target.closest('[data-big]'); if (b) return openFig(b.dataset.big);
+  const go = e.target.closest('[data-go]');
+  if (go){ dlg.close(); const n = byId[go.dataset.go]; hideHelp(); expandPath(n); if (n.children.length) n.expanded = true; selId = n.id; render(); openNote(n); focusOn(n); }
+});
+document.getElementById('bFigs').onclick = openGallery;
+
+// ---------- presentation ----------
+const pres = document.getElementById('pres'), bPres = document.getElementById('bPres');
+let step = -1;
+function showStep(i){
+  step = Math.max(0, Math.min(STEPS.length - 1, i));
+  const s = STEPS[step];
+  setAll(false);
+  document.getElementById('pLabel').textContent = `Passo ${step + 1} de ${STEPS.length}: ${s.t}`;
+  if (s.id === 'fim'){
+    byId.phy.expanded = true; selId = null; render();
+    openText(s.note.title, `<p>${esc(s.note.text)}</p>`); fitAll(); return;
+  }
+  const n = byId[s.id]; expandPath(n); if (n.children.length) n.expanded = true;
+  selId = n.id; render(); openNote(n); focusOn(n);
+  document.getElementById('sLeft').textContent = crumb(n);
+}
+function togglePres(on){
+  pres.classList.toggle('open', on); bPres.setAttribute('aria-pressed', on);
+  if (on){ hideHelp(); showStep(0); } else { step = -1; }
+}
+bPres.onclick = () => togglePres(!pres.classList.contains('open'));
+document.getElementById('pNext').onclick = () => showStep(step + 1);
+document.getElementById('pPrev').onclick = () => showStep(step - 1);
+document.getElementById('pExit').onclick = () => togglePres(false);
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input,textarea')) return;
+  if (pres.classList.contains('open')){
+    if (e.key === 'ArrowRight' || e.key === 'PageDown'){ e.preventDefault(); showStep(step + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp'){ e.preventDefault(); showStep(step - 1); }
+  }
+  if (e.key === 'Escape'){ if (note.classList.contains('open')) closeNote(); else if (pres.classList.contains('open')) togglePres(false); }
+});
+
+render();
+fitAll(true);
+window.addEventListener('orientationchange', () => setTimeout(() => fitAll(true), 300));
+})();
+</script>
+</body>
+</html>
